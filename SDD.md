@@ -155,7 +155,7 @@ TELEGRAM_WEBHOOK_SECRET=CHACARA_SECRET_KEY_2026
 
 # Google Gemini API
 GEMINI_API_KEY=COLE_SUA_CHAVE_AQUI
-GEMINI_PREFERRED_MODELS=gemini-1.5-flash,gemini-1.5-flash-8b,gemini-1.5-pro,gemini-1.0-pro
+GEMINI_PREFERRED_MODELS=gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.5-pro,gemini-flash-latest,gemini-3-flash-preview
 
 ```
 
