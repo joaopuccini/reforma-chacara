@@ -7,11 +7,15 @@ export class Expense {
   desconto: number;
   valor_final: number;
   status: string;
-  parcelas: string;
-  pago_joao: number;
-  pago_fofo: number;
-  pendente: number;
+  origem_pagamento: string;
+  responsavel: string;
+  parcela_numero: number;
+  parcelas_total: number;
+  valor_parcela: number;
+  data_vencimento: Date | null;
+  compra_grupo_id: string | null;
   link_comprovante: string;
   observacoes: string;
   created_at: Date;
+  updated_at: Date;
 }

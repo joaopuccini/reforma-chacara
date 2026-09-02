@@ -24,6 +24,14 @@ export class QueryExpenseDto {
 
   @IsOptional()
   @IsString()
+  origem_pagamento?: string;
+
+  @IsOptional()
+  @IsString()
+  responsavel?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

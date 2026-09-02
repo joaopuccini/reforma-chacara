@@ -40,9 +40,11 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
               <tr>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Categoria</th>
-                <th className="px-4 py-3 font-medium">Valor Final</th>
-                <th className="px-4 py-3 font-medium">Pago João</th>
-                <th className="px-4 py-3 font-medium">Pago Fofo</th>
+                <th className="px-4 py-3 font-medium">Valor</th>
+                <th className="px-4 py-3 font-medium">Origem</th>
+                <th className="px-4 py-3 font-medium">Resp.</th>
+                <th className="px-4 py-3 font-medium">Parcela</th>
+                <th className="px-4 py-3 font-medium">Venc.</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Ações</th>
               </tr>
@@ -58,9 +60,15 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                     <div className="text-foreground">{expense.categoria}</div>
                     <div className="text-xs text-muted-foreground">{expense.subcategoria}</div>
                   </td>
-                  <td className="px-4 py-3 font-medium">{formatCurrency(expense.valor_final)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatCurrency(expense.pago_joao)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatCurrency(expense.pago_fofo)}</td>
+                  <td className="px-4 py-3 font-medium">{formatCurrency(expense.valor_parcela)}</td>
+                  <td className="px-4 py-3 text-sm">{expense.origem_pagamento}</td>
+                  <td className="px-4 py-3 text-sm">{expense.responsavel}</td>
+                  <td className="px-4 py-3 text-sm text-center">
+                    {expense.parcela_numero}/{expense.parcelas_total}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {expense.data_vencimento ? new Date(expense.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={clsx(
                       "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",

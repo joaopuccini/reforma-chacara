@@ -1,29 +1,37 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+DROP TABLE IF EXISTS despesas;
 
-CREATE TABLE IF NOT EXISTS despesas (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    descricao TEXT NOT NULL,
-    categoria VARCHAR(50) NOT NULL CHECK (categoria IN ('Mão de Obra', 'Material para a Casa', 'Material de Apoio', 'Serviços e Locações')),
-    subcategoria VARCHAR(50) NOT NULL,
-    valor_bruto NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    desconto NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    valor_final NUMERIC(10, 2) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'Pago' CHECK (status IN ('Pago', 'Pendente')),
-    parcelas VARCHAR(50) NOT NULL DEFAULT 'À vista',
-    pago_joao NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    pago_fofo NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    pendente NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    link_comprovante TEXT DEFAULT '—',
-    observacoes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE despesas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  descricao TEXT NOT NULL,
+  categoria TEXT NOT NULL,
+  subcategoria TEXT,
+  valor_bruto NUMERIC(10,2) DEFAULT 0,
+  desconto NUMERIC(10,2) DEFAULT 0,
+  valor_final NUMERIC(10,2) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Pago',
+  origem_pagamento TEXT NOT NULL,
+  responsavel TEXT NOT NULL,
+  parcela_numero INTEGER DEFAULT 1,
+  parcelas_total INTEGER DEFAULT 1,
+  valor_parcela NUMERIC(10,2) NOT NULL,
+  data_vencimento DATE,
+  compra_grupo_id UUID,
+  link_comprovante TEXT DEFAULT '—',
+  observacoes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Índices para otimização de consultas e relatórios
-CREATE INDEX IF NOT EXISTS idx_despesas_created_at ON despesas(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_despesas_categoria ON despesas(categoria);
-CREATE INDEX IF NOT EXISTS idx_despesas_status ON despesas(status);
+-- Trigger para atualizar updated_at automaticamente
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
 
--- RLS e Policies (Segurança Básica para Client/Service Role)
-ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Permitir leitura anon" ON despesas FOR SELECT USING (true);
-CREATE POLICY "Permitir mutacoes backend" ON despesas FOR ALL USING (true) WITH CHECK (true);
+CREATE TRIGGER update_despesas_modtime
+  BEFORE UPDATE ON despesas
+  FOR EACH ROW
+  EXECUTE FUNCTION update_modified_column();

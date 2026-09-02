@@ -16,6 +16,8 @@ function App() {
     limit: 20,
     categoria: '',
     status: '',
+    origem_pagamento: '',
+    responsavel: '',
     search: ''
   });
 

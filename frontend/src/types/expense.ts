@@ -7,13 +7,17 @@ export interface Expense {
   desconto: number;
   valor_final: number;
   status: 'Pago' | 'Pendente';
-  parcelas: string;
-  pago_joao: number;
-  pago_fofo: number;
-  pendente: number;
+  origem_pagamento: string;
+  responsavel: string;
+  parcela_numero: number;
+  parcelas_total: number;
+  valor_parcela: number;
+  data_vencimento: string | null;
+  compra_grupo_id: string | null;
   link_comprovante: string;
   observacoes: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Metrics {

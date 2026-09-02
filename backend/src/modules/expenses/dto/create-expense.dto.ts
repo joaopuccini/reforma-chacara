@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsIn, IsOptional, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsIn, IsOptional, Min, IsUUID } from 'class-validator';
 
 export class CreateExpenseDto {
   @IsNotEmpty()
@@ -32,24 +32,36 @@ export class CreateExpenseDto {
   @IsIn(['Pago', 'Pendente'])
   status?: string;
 
+  @IsNotEmpty()
+  @IsIn(['PIX', 'DINHEIRO', 'CARTAO_CREDITO_JOAO', 'CARTAO_PRETO_CREDITO_FOFO'])
+  origem_pagamento: string;
+
+  @IsNotEmpty()
+  @IsIn(['João', 'Fofo'])
+  responsavel: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  parcelas_total?: number;
+
+  // Os campos abaixo serão calculados/preenchidos pelo backend (não exigidos do client na criação primária)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  parcela_numero?: number;
+
+  @IsOptional()
+  @IsNumber()
+  valor_parcela?: number;
+
   @IsOptional()
   @IsString()
-  parcelas?: string;
+  data_vencimento?: string;
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  pago_joao?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  pago_fofo?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  pendente?: number;
+  @IsUUID()
+  compra_grupo_id?: string;
 
   @IsOptional()
   @IsString()

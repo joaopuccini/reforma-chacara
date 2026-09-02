@@ -40,10 +40,10 @@ export class TelegramService {
 
       // Obter as despesas recentes para contexto
       const { data: recentExpenses } = await this.expensesService.findAll({ limit: 15 });
-      let sheetContext = "DADOS ATUAIS DA BASE (ID | Descrição | Categoria | Valor Final | Status | Pago João | Pago Fofo | Pendente):\n";
+      let sheetContext = "DADOS ATUAIS DA BASE (ID | Descrição | Categoria | Valor Parcela | Status | Origem | Resp. | Parcela | Vencimento):\n";
       
       recentExpenses.forEach(r => {
-        sheetContext += `[ID: ${r.id}] ${r.descricao} (${r.categoria}) | R$ ${Number(r.valor_final).toFixed(2)} | Status: ${r.status} | João: ${r.pago_joao} | Fofo: ${r.pago_fofo} | Pendente: ${r.pendente}\n`;
+        sheetContext += `[ID: ${r.id}] ${r.descricao} (${r.categoria}) | R$ ${Number(r.valor_parcela).toFixed(2)} | Status: ${r.status} | Origem: ${r.origem_pagamento} | Resp: ${r.responsavel} | Parcela: ${r.parcela_numero}/${r.parcelas_total} | Venc: ${r.data_vencimento || '—'}\n`;
       });
 
       let geminiParts = [];
@@ -89,11 +89,9 @@ export class TelegramService {
           valor_bruto: Number(d.valor_bruto || d.valor_final),
           desconto: Number(d.desconto || 0),
           valor_final: Number(d.valor_final),
-          status: d.status || 'Pago',
-          parcelas: d.parcelas || 'À vista',
-          pago_joao: Number(d.pago_joao || 0),
-          pago_fofo: Number(d.pago_fofo || 0),
-          pendente: Number(d.pendente || 0),
+          origem_pagamento: d.origem_pagamento || 'PIX',
+          responsavel: d.responsavel || 'João',
+          parcelas_total: Number(d.parcelas_total || 1),
           link_comprovante: d.link_comprovante || '—',
           observacoes: d.observacoes || 'Telegram IA',
         });

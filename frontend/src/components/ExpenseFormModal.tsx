@@ -19,10 +19,10 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
     desconto: 0,
     valor_final: 0,
     status: 'Pago',
-    parcelas: 'À vista',
-    pago_joao: 0,
-    pago_fofo: 0,
-    pendente: 0,
+    origem_pagamento: 'PIX',
+    responsavel: 'João',
+    parcelas_total: 1,
+    data_vencimento: '',
     link_comprovante: '',
     observacoes: ''
   });
@@ -38,10 +38,10 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
           desconto: Number(res.data.desconto) || 0,
           valor_final: Number(res.data.valor_final) || 0,
           status: res.data.status || 'Pago',
-          parcelas: res.data.parcelas || 'À vista',
-          pago_joao: Number(res.data.pago_joao) || 0,
-          pago_fofo: Number(res.data.pago_fofo) || 0,
-          pendente: Number(res.data.pendente) || 0,
+          origem_pagamento: res.data.origem_pagamento || 'PIX',
+          responsavel: res.data.responsavel || 'João',
+          parcelas_total: Number(res.data.parcelas_total) || 1,
+          data_vencimento: res.data.data_vencimento ? res.data.data_vencimento.split('T')[0] : '',
           link_comprovante: res.data.link_comprovante || '',
           observacoes: res.data.observacoes || ''
         });
@@ -66,20 +66,6 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
       }
       return updated;
     });
-  };
-
-  const setSplit = (type: 'joao' | 'fofo' | 'meio' | 'pendente') => {
-    const total = formData.valor_final;
-    if (type === 'joao') {
-      setFormData(prev => ({ ...prev, pago_joao: total, pago_fofo: 0, pendente: 0, status: 'Pago' }));
-    } else if (type === 'fofo') {
-      setFormData(prev => ({ ...prev, pago_joao: 0, pago_fofo: total, pendente: 0, status: 'Pago' }));
-    } else if (type === 'meio') {
-      const half = total / 2;
-      setFormData(prev => ({ ...prev, pago_joao: half, pago_fofo: half, pendente: 0, status: 'Pago' }));
-    } else if (type === 'pendente') {
-      setFormData(prev => ({ ...prev, pago_joao: 0, pago_fofo: 0, pendente: total, status: 'Pendente' }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,7 +114,7 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
                 <input required type="text" name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium">Status *</label>
                 <select name="status" value={formData.status} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm">
                   <option value="Pago">Pago</option>
                   <option value="Pendente">Pendente</option>
@@ -151,32 +137,43 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
               </div>
             </div>
 
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-4">
-                <label className="text-sm font-medium">Rateio</label>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setSplit('joao')} className="px-2 py-1 text-xs border rounded hover:bg-muted">100% João</button>
-                  <button type="button" onClick={() => setSplit('fofo')} className="px-2 py-1 text-xs border rounded hover:bg-muted">100% Fofo</button>
-                  <button type="button" onClick={() => setSplit('meio')} className="px-2 py-1 text-xs border rounded hover:bg-muted">50/50</button>
-                  <button type="button" onClick={() => setSplit('pendente')} className="px-2 py-1 text-xs border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 rounded">Pendente</button>
-                </div>
+            <div className="border-t border-border pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Origem do Pagamento *</label>
+                <select required name="origem_pagamento" value={formData.origem_pagamento} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm">
+                  <option value="PIX">PIX</option>
+                  <option value="DINHEIRO">Dinheiro</option>
+                  <option value="CARTAO_CREDITO_JOAO">Cartão de Crédito João</option>
+                  <option value="CARTAO_PRETO_CREDITO_FOFO">Cartão Preto Crédito Fofo</option>
+                </select>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pago por João</label>
-                  <input type="number" step="0.01" name="pago_joao" value={formData.pago_joao} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pago por Fofo</label>
-                  <input type="number" step="0.01" name="pago_fofo" value={formData.pago_fofo} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-amber-500">Pendente a Pagar</label>
-                  <input type="number" step="0.01" name="pendente" value={formData.pendente} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Responsável *</label>
+                <select required name="responsavel" value={formData.responsavel} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm">
+                  <option value="João">João</option>
+                  <option value="Fofo">Fofo</option>
+                </select>
               </div>
             </div>
+            
+            {!expenseId && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Qtd. Parcelas *</label>
+                  <input required type="number" min="1" step="1" name="parcelas_total" value={formData.parcelas_total} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
+                  <p className="text-xs text-muted-foreground">O sistema dividirá o Valor Final automaticamente se &gt; 1.</p>
+                </div>
+              </div>
+            )}
+            
+            {expenseId && formData.status === 'Pendente' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Vencimento da Parcela (Se Pendente)</label>
+                  <input type="date" name="data_vencimento" value={formData.data_vencimento} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
+                </div>
+              </div>
+            )}
 
             <div className="border-t border-border pt-4 space-y-4">
               <div className="space-y-2">

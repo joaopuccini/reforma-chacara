@@ -19,27 +19,25 @@ ${sheetContext}
 
 REGRAS DE CLASSIFICAÇÃO DE AÇÃO:
 1. "QUERY": O usuário está fazendo uma pergunta, pedindo resumo, soma ou consulta sobre os gastos.
-   - Responda de forma clara, amigável e direta em Markdown no campo "reply". Calcule os valores exatos usando a tabela acima.
+   - Responda de forma clara, amigável e direta em Markdown no campo "reply". Calcule os valores usando a tabela acima.
 2. "INSERT": O usuário informou uma nova compra/despesa para adicionar.
-   - Preencha o objeto "data" com os campos financeiros.
+   - Preencha o objeto "data" com os campos financeiros, extraindo a Origem do Pagamento, Responsável e Parcelas.
 3. "UPDATE": O usuário quer alterar, corrigir ou editar um gasto existente.
-   - Identifique o "id" exato da linha correspondente e retorne o objeto "data" com os valores atualizados.
-4. "DELETE": O usuário quer apagar/excluir um item ou a última linha.
-   - Identifique o "id" exato da linha a ser apagada.
+   - Identifique o "id" exato da linha correspondente e retorne os valores atualizados.
+4. "DELETE": O usuário quer apagar um item ou a última compra.
+   - Identifique o "id" ou "compra_grupo_id" exato.
 
-REGRAS FINANCEIRAS PARA INSERT E UPDATE:
+REGRAS DE EXTRAÇÃO PARA INSERT/UPDATE:
+- Origem do Pagamento obrigatória: 'PIX', 'DINHEIRO', 'CARTAO_CREDITO_JOAO', 'CARTAO_PRETO_CREDITO_FOFO'
+- Responsável obrigatório: 'João' ou 'Fofo'. (Ex: Se usou cartão do João, responsável é João. Se pagou no PIX, descubra quem fez o PIX). Se não estiver explícito, pergunte ou deduza do contexto.
 - Categorias válidas: "Mão de Obra", "Material para a Casa", "Material de Apoio", "Serviços e Locações".
-- Divisão:
-  * Se pago por João: pago_joao = valor_final, pago_fofo = 0, pendente = 0, status = "Pago"
-  * Se pago por Fofo: pago_fofo = valor_final, pago_joao = 0, pendente = 0, status = "Pago"
-  * Se 50/50 ou ambos: pago_joao = valor_final/2, pago_fofo = valor_final/2, pendente = 0, status = "Pago"
-  * Se pendente/a pagar: pendente = valor_final, pago_joao = 0, pago_fofo = 0, status = "Pendente"
+- Parcelas: Apenas o NÚMERO TOTAL de parcelas. Ex: 5 (para 5x), 1 (para à vista).
 
 JSON SCHEMA DE RETORNO OBRIGATÓRIO:
 {
   "action": "QUERY" | "INSERT" | "UPDATE" | "DELETE",
-  "id": "uuid-string (apenas para UPDATE e DELETE)",
-  "reply": "Texto de resposta ou confirmação formatado em Markdown para o Telegram",
+  "id": "uuid-string (para UPDATE/DELETE apenas)",
+  "reply": "Texto de resposta ou confirmação para o Telegram",
   "data": {
     "descricao": "string",
     "categoria": "string",
@@ -47,11 +45,9 @@ JSON SCHEMA DE RETORNO OBRIGATÓRIO:
     "valor_bruto": 0.0,
     "desconto": 0.0,
     "valor_final": 0.0,
-    "status": "Pago" | "Pendente",
-    "parcelas": "string",
-    "pago_joao": 0.0,
-    "pago_fofo": 0.0,
-    "pendente": 0.0,
+    "origem_pagamento": "PIX" | "DINHEIRO" | "CARTAO_CREDITO_JOAO" | "CARTAO_PRETO_CREDITO_FOFO",
+    "responsavel": "João" | "Fofo",
+    "parcelas_total": 1,
     "link_comprovante": "—",
     "observacoes": "string"
   }
@@ -71,7 +67,7 @@ JSON SCHEMA DE RETORNO OBRIGATÓRIO:
     
     for (const model of models) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.trim()}:generateContent`;
         const response = await axios.post(url, payload, {
           headers: {
             "Content-Type": "application/json",
