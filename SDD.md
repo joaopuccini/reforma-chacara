@@ -150,12 +150,12 @@ SUPABASE_SERVICE_ROLE_KEY=eyJh... # Chave secreta de serviço para bypass de RLS
 SUPABASE_ANON_KEY=eyJh...
 
 # Telegram Bot
-TELEGRAM_BOT_TOKEN=8501244074:AAGaTvUClWaGcKrQrCzFQLC2in5-Of2JfUI
+TELEGRAM_BOT_TOKEN=8967675072:AAHyaQNolhhPnbKyA93Nrm52qWVptYSPaO0
 TELEGRAM_WEBHOOK_SECRET=CHACARA_SECRET_KEY_2026
 
 # Google Gemini API
 GEMINI_API_KEY=COLE_SUA_CHAVE_AQUI
-GEMINI_PREFERRED_MODELS=gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3-flash-preview
+GEMINI_PREFERRED_MODELS=gemini-1.5-flash,gemini-1.5-flash-8b,gemini-1.5-pro,gemini-1.0-pro
 
 ```
 
