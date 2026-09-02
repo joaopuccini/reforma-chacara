@@ -1,0 +1,17 @@
+{
+  "name": "reforma-chacara",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão Financeira Reforma Chácara",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "scripts"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend"
+  }
+}

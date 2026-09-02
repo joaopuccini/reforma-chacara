@@ -1,0 +1,17 @@
+{
+  "name": "reforma-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "migrate": "tsx migrate-from-sheets.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "@types/node": "^22.5.0"
+  }
+}
