@@ -1,5 +1,10 @@
+import { Allow, IsOptional } from 'class-validator';
+
 export class TelegramUpdateDto {
+  @Allow()
   update_id: number;
+
+  @IsOptional()
   message?: {
     message_id: number;
     from: {
