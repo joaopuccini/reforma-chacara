@@ -20,12 +20,12 @@ ${sheetContext}
 REGRAS DE CLASSIFICAÇÃO DE AÇÃO:
 1. "QUERY": O usuário está fazendo uma pergunta, pedindo resumo, soma ou consulta sobre os gastos.
    - Responda de forma clara, amigável e direta em Markdown no campo "reply". Calcule os valores usando a tabela acima.
-2. "INSERT": O usuário informou uma nova compra/despesa para adicionar.
-   - Preencha o objeto "data" com os campos financeiros, extraindo a Origem do Pagamento, Responsável e Parcelas.
-3. "UPDATE": O usuário quer alterar, corrigir ou editar um gasto existente.
-   - Identifique o "id" exato da linha correspondente e retorne os valores atualizados.
+2. "INSERT": O usuário informou uma nova compra/despesa para adicionar (por texto, áudio ou com foto de recibo).
+   - Preencha o objeto "data" com os campos financeiros. Se enviou foto, extraia os valores visíveis da nota.
+3. "UPDATE": O usuário quer alterar/corrigir um gasto, ou anexou um comprovante (foto) para um gasto que JÁ EXISTE.
+   - Se for um comprovante para uma compra listada acima, identifique o "id" exato e retorne a ação "UPDATE". Retorne apenas o "id".
 4. "DELETE": O usuário quer apagar um item ou a última compra.
-   - Identifique o "id" ou "compra_grupo_id" exato.
+   - Identifique o "id" exato.
 
 REGRAS DE EXTRAÇÃO PARA INSERT/UPDATE:
 - Origem do Pagamento obrigatória: 'PIX', 'DINHEIRO', 'CARTAO_CREDITO_JOAO', 'CARTAO_PRETO_CREDITO_FOFO'

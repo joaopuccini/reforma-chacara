@@ -48,6 +48,8 @@ export class TelegramService {
 
       let geminiParts = [];
 
+      let photoBase64: string | null = null;
+
       if (msg.voice || msg.audio) {
         const media = msg.voice || msg.audio;
         if (!media) return;
@@ -62,15 +64,15 @@ export class TelegramService {
         geminiParts.push({ text: "Analise o comando de áudio do usuário e execute a ação correta." });
       } else if (msg.photo) {
         const fileId = msg.photo[msg.photo.length - 1].file_id;
-        const fileBase64 = await this.downloadTelegramBlob(fileId);
+        photoBase64 = await this.downloadTelegramBlob(fileId);
         geminiParts.push({
           inlineData: {
             mimeType: "image/jpeg",
-            data: fileBase64
+            data: photoBase64
           }
         });
         const legenda = msg.caption ? ` Legenda informada: "${msg.caption}"` : "";
-        geminiParts.push({ text: "Analise esta foto de nota/recibo para cadastrar como novo gasto." + legenda });
+        geminiParts.push({ text: "Analise esta foto de nota/recibo para cadastrar como novo gasto ou atualizar um existente." + legenda });
       } else if (msg.text) {
         geminiParts.push({ text: `Mensagem do usuário: "${msg.text}"` });
       } else {
@@ -79,6 +81,17 @@ export class TelegramService {
       }
 
       const decision = await this.geminiParser.parse(geminiParts, sheetContext);
+
+      let uploadedUrl: string | undefined;
+      if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && photoBase64) {
+        try {
+          const buffer = Buffer.from(photoBase64, 'base64');
+          const fileName = `telegram-${Date.now()}.jpg`;
+          uploadedUrl = await this.expensesService.uploadBuffer(fileName, buffer, 'image/jpeg');
+        } catch (e: any) {
+          this.logger.error("Erro ao subir imagem pro supabase: " + e.message);
+        }
+      }
 
       if (decision.action === 'INSERT') {
         const d = decision.data;
@@ -94,6 +107,7 @@ export class TelegramService {
           parcelas_total: Number(d.parcelas_total || 1),
           link_comprovante: d.link_comprovante || '—',
           observacoes: d.observacoes || 'Telegram IA',
+          ...(uploadedUrl ? { comprovante_url: uploadedUrl } : {})
         });
         await this.sendMessage(chatId, decision.reply || "✅ *Gasto registrado com sucesso!*");
 
@@ -107,10 +121,11 @@ export class TelegramService {
 
       } else if (decision.action === 'UPDATE') {
         if (decision.id) {
-          const d = decision.data;
+          const d = decision.data || {};
           await this.expensesService.update(decision.id, {
             ...d,
-            observacoes: d.observacoes || 'Atualizado via Telegram'
+            observacoes: d.observacoes || 'Atualizado via Telegram',
+            ...(uploadedUrl ? { comprovante_url: uploadedUrl } : {})
           });
           await this.sendMessage(chatId, decision.reply || `✏️ *Item atualizado com sucesso!*`);
         } else {

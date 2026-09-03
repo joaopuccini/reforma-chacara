@@ -32,6 +32,7 @@ export class ExpensesService {
 
     const { data, count, error } = await dbQuery
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw new Error(error.message);
@@ -244,6 +245,21 @@ export class ExpensesService {
     };
   }
 
+  async uploadBuffer(fileName: string, buffer: Buffer | ArrayBuffer, mimeType: string): Promise<string> {
+    const { data, error } = await this.client.storage
+      .from('comprovantes')
+      .upload(fileName, buffer, {
+        contentType: mimeType,
+        upsert: true
+      });
+      
+    if (error) throw new Error(`Erro ao fazer upload: ${error.message}`);
+    
+    return this.client.storage
+      .from('comprovantes')
+      .getPublicUrl(fileName).data.publicUrl;
+  }
+
   async uploadReceipt(id: string, file: any) {
     if (!file) throw new Error('Arquivo não fornecido');
     
@@ -252,18 +268,7 @@ export class ExpensesService {
     const ext = file.originalname.split('.').pop();
     const fileName = `${id}-${Date.now()}.${ext}`;
     
-    const { data, error } = await this.client.storage
-      .from('comprovantes')
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true
-      });
-      
-    if (error) throw new Error(`Erro ao fazer upload: ${error.message}`);
-    
-    const publicUrl = this.client.storage
-      .from('comprovantes')
-      .getPublicUrl(fileName).data.publicUrl;
+    const publicUrl = await this.uploadBuffer(fileName, file.buffer, file.mimetype);
       
     // Atualiza a despesa
     const { data: updated, error: updateError } = await this.client
