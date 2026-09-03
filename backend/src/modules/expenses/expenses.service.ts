@@ -121,17 +121,52 @@ export class ExpensesService {
   }
 
   async update(id: string, updateExpenseDto: UpdateExpenseDto): Promise<Expense> {
-    const { data, error } = await this.client
-      .from('despesas')
-      .update(updateExpenseDto)
-      .eq('id', id)
-      .select()
-      .single();
+    const existing = await this.findOne(id);
 
-    if (error) throw new Error(error.message);
-    if (!data) throw new NotFoundException(`Expense with ID ${id} not found`);
-    
-    return data as Expense;
+    // Se houver alteração de valor_final e for uma compra parcelada (grupo)
+    if (updateExpenseDto.valor_final !== undefined && existing.compra_grupo_id && existing.parcelas_total > 1) {
+      const parcelasTotal = existing.parcelas_total;
+      const novoValorFinal = updateExpenseDto.valor_final;
+
+      const valorBaseParcela = Math.floor((novoValorFinal / parcelasTotal) * 100) / 100;
+      const somaParcelasBase = valorBaseParcela * (parcelasTotal - 1);
+      const valorUltimaParcela = Number((novoValorFinal - somaParcelasBase).toFixed(2));
+
+      // Atualiza parcelas de 1 a N-1
+      await this.client
+        .from('despesas')
+        .update({ valor_final: novoValorFinal, valor_parcela: valorBaseParcela })
+        .eq('compra_grupo_id', existing.compra_grupo_id)
+        .neq('parcela_numero', parcelasTotal);
+
+      // Atualiza a última parcela (para corrigir os centavos)
+      await this.client
+        .from('despesas')
+        .update({ valor_final: novoValorFinal, valor_parcela: valorUltimaParcela })
+        .eq('compra_grupo_id', existing.compra_grupo_id)
+        .eq('parcela_numero', parcelasTotal);
+
+      // Remover valor_final do DTO, pois já tratamos todas as parcelas no banco
+      delete updateExpenseDto.valor_final;
+    } else if (updateExpenseDto.valor_final !== undefined) {
+      // Compra à vista ou edição isolada
+      updateExpenseDto.valor_parcela = updateExpenseDto.valor_final;
+    }
+
+    // Processa quaisquer campos restantes (ex: status, observacoes) para a linha selecionada
+    if (Object.keys(updateExpenseDto).length > 0) {
+      const { data, error } = await this.client
+        .from('despesas')
+        .update(updateExpenseDto)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data as Expense;
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: string): Promise<{ success: boolean }> {

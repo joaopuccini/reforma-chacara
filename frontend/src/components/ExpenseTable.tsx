@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { Expense } from '../types/expense';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useExpenseMutation } from '../hooks/useExpenses';
@@ -14,13 +15,65 @@ interface ExpenseTableProps {
 const formatCurrency = (value: number) => 
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
+function EditableTotal({ expense, onSave }: { expense: Expense, onSave: (val: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [val, setVal] = useState(expense.valor_final);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setVal(expense.valor_final);
+  }, [expense.valor_final]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (val !== expense.valor_final) onSave(val);
+  }
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    }
+  }
+
+  if (isEditing) {
+    return <input 
+      ref={inputRef}
+      autoFocus
+      type="number" 
+      step="0.01"
+      className="w-24 px-1 py-0.5 text-sm bg-background border border-primary rounded outline-none" 
+      value={val} 
+      onChange={e => setVal(parseFloat(e.target.value))} 
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+    />
+  }
+
+  return <span 
+    className="cursor-pointer hover:text-primary hover:underline underline-offset-2 decoration-dashed transition-colors"
+    onClick={() => setIsEditing(true)}
+    title="Clique para editar o valor total"
+  >
+    {formatCurrency(expense.valor_final)}
+  </span>
+}
+
 export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChange }: ExpenseTableProps) {
-  const { deleteExpense } = useExpenseMutation();
+  const { deleteExpense, updateExpense } = useExpenseMutation();
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta despesa?')) {
       await deleteExpense(id);
     }
+  };
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    await updateExpense({ id, payload: { status: newStatus as 'Pago' | 'Pendente' } });
+  };
+
+  const handleTotalChange = async (id: string, newTotal: number) => {
+    if (isNaN(newTotal) || newTotal <= 0) return;
+    await updateExpense({ id, payload: { valor_final: newTotal } });
   };
 
   if (isLoading) {
@@ -40,10 +93,10 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
               <tr>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Categoria</th>
-                <th className="px-4 py-3 font-medium">Valor</th>
+                <th className="px-4 py-3 font-medium">Total</th>
+                <th className="px-4 py-3 font-medium">Parcela (R$)</th>
                 <th className="px-4 py-3 font-medium">Origem</th>
                 <th className="px-4 py-3 font-medium">Resp.</th>
-                <th className="px-4 py-3 font-medium">Parcela</th>
                 <th className="px-4 py-3 font-medium">Venc.</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Ações</th>
@@ -51,31 +104,45 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
             </thead>
             <tbody>
               {data.map((expense) => (
-                <tr key={expense.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                <tr 
+                  key={expense.id} 
+                  className={clsx(
+                    "border-b border-border last:border-0 hover:bg-muted/30 transition-colors border-l-[3px]",
+                    expense.status === 'Pago' ? "border-l-emerald-500" : "border-l-amber-500"
+                  )}
+                >
                   <td className="px-4 py-3">
                     <div className="font-medium text-foreground">{expense.descricao}</div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{expense.observacoes}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={expense.observacoes}>{expense.observacoes}</div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-foreground">{expense.categoria}</div>
                     <div className="text-xs text-muted-foreground">{expense.subcategoria}</div>
                   </td>
-                  <td className="px-4 py-3 font-medium">{formatCurrency(expense.valor_parcela)}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <EditableTotal expense={expense} onSave={(val) => handleTotalChange(expense.id, val)} />
+                  </td>
+                  <td className="px-4 py-3 font-medium text-muted-foreground">
+                    {formatCurrency(expense.valor_parcela)}
+                    <span className="ml-1 text-xs">({expense.parcela_numero}/{expense.parcelas_total})</span>
+                  </td>
                   <td className="px-4 py-3 text-sm">{expense.origem_pagamento}</td>
                   <td className="px-4 py-3 text-sm">{expense.responsavel}</td>
-                  <td className="px-4 py-3 text-sm text-center">
-                    {expense.parcela_numero}/{expense.parcelas_total}
-                  </td>
                   <td className="px-4 py-3 text-sm">
                     {expense.data_vencimento ? new Date(expense.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={clsx(
-                      "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                      expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                    )}>
-                      {expense.status}
-                    </span>
+                    <select 
+                      value={expense.status}
+                      onChange={(e) => handleStatusChange(expense.id, e.target.value)}
+                      className={clsx(
+                        "px-2 py-0.5 rounded text-xs font-medium cursor-pointer appearance-none outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-0",
+                        expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      )}
+                    >
+                      <option value="Pago" className="bg-background text-foreground">Pago</option>
+                      <option value="Pendente" className="bg-background text-foreground">Pendente</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
@@ -111,14 +178,14 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
             <button 
               disabled={meta.page <= 1}
               onClick={() => onPageChange(meta.page - 1)}
-              className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 transition-colors"
             >
               Anterior
             </button>
             <button 
               disabled={meta.page >= meta.totalPages}
               onClick={() => onPageChange(meta.page + 1)}
-              className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 transition-colors"
             >
               Próxima
             </button>
