@@ -81,25 +81,22 @@ function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, o
   }
 
   const url = expense.comprovante_url || expense.link_comprovante;
-  const isValidUrl = typeof url === 'string' && url.trim() !== '' && url.trim() !== '-';
-
-  if (isValidUrl) {
-    return (
-      <a 
-        href={url} 
-        target="_blank" 
-        rel="noreferrer"
-        className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors inline-block"
-        title="Ver Comprovante"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <ExternalLink className="w-4 h-4" />
-      </a>
-    );
-  }
+  const isInvalidChar = url === '-' || url === '—' || url === '–';
+  const isValidUrl = typeof url === 'string' && url.trim() !== '' && !isInvalidChar;
 
   return (
-    <>
+    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+      {isValidUrl && (
+        <a 
+          href={url as string} 
+          target="_blank" 
+          rel="noreferrer"
+          className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors"
+          title="Ver Comprovante"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
+      )}
       <input 
         type="file" 
         className="hidden" 
@@ -108,13 +105,13 @@ function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, o
         accept="image/*,application/pdf"
       />
       <button 
-        onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+        onClick={() => fileInputRef.current?.click()}
         className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
-        title="Anexar Comprovante"
+        title={isValidUrl ? "Substituir Comprovante" : "Anexar Comprovante"}
       >
         <Paperclip className="w-4 h-4" />
       </button>
-    </>
+    </div>
   );
 }
 
