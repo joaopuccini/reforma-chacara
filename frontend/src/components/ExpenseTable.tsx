@@ -80,11 +80,13 @@ function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, o
     );
   }
 
-  if (expense.comprovante_url || expense.link_comprovante) {
-    const url = expense.comprovante_url || expense.link_comprovante;
+  const url = expense.comprovante_url || expense.link_comprovante;
+  const isValidUrl = typeof url === 'string' && url.trim() !== '' && url.trim() !== '-';
+
+  if (isValidUrl) {
     return (
       <a 
-        href={url as string} 
+        href={url} 
         target="_blank" 
         rel="noreferrer"
         className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors inline-block"
