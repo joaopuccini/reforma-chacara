@@ -13,10 +13,11 @@ export interface Expense {
   parcelas_total: number;
   valor_parcela: number;
   data_vencimento: string | null;
-  compra_grupo_id: string | null;
-  link_comprovante: string;
-  observacoes: string;
-  created_at: string;
+  compra_grupo_id?: string | null;
+  link_comprovante?: string | null;
+  comprovante_url?: string | null;
+  observacoes?: string | null;
+  created_at?: string;
   updated_at: string;
 }
 

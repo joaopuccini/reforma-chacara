@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Expense } from '../types/expense';
-import { Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, ChevronDown, ChevronRight, Paperclip, ExternalLink, Loader2 } from 'lucide-react';
 import { useExpenseMutation } from '../hooks/useExpenses';
 import clsx from 'clsx';
 
@@ -62,9 +62,76 @@ function EditableTotal({ expense, onSave }: { expense: Expense, onSave: (val: nu
   </span>
 }
 
+function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, onUpload: (id: string, file: File) => void, isUploading: boolean }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onUpload(expense.id, file);
+    }
+  };
+
+  if (isUploading) {
+    return (
+      <div className="p-1.5 text-primary">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
+  }
+
+  if (expense.comprovante_url || expense.link_comprovante) {
+    const url = expense.comprovante_url || expense.link_comprovante;
+    return (
+      <a 
+        href={url as string} 
+        target="_blank" 
+        rel="noreferrer"
+        className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors inline-block"
+        title="Ver Comprovante"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    );
+  }
+
+  return (
+    <>
+      <input 
+        type="file" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={handleFileChange}
+        accept="image/*,application/pdf"
+      />
+      <button 
+        onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+        className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
+        title="Anexar Comprovante"
+      >
+        <Paperclip className="w-4 h-4" />
+      </button>
+    </>
+  );
+}
+
 export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChange }: ExpenseTableProps) {
-  const { deleteExpense, updateExpense } = useExpenseMutation();
+  const { deleteExpense, updateExpense, uploadReceipt } = useExpenseMutation();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const handleUpload = async (id: string, file: File) => {
+    setUploadingId(id);
+    try {
+      await uploadReceipt({ id, file });
+    } catch (e) {
+      alert('Erro ao fazer upload. Verifique o console.');
+      console.error(e);
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const toggleGroup = (id: string) => {
     setExpandedGroups(prev => {
@@ -152,7 +219,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                       <td className="w-8 px-2 py-3"></td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground">{expense.descricao}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={expense.observacoes}>{expense.observacoes}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={expense.observacoes || undefined}>{expense.observacoes}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-foreground">{expense.categoria}</div>
@@ -184,7 +251,8 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                         </select>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <ReceiptAction expense={expense} onUpload={handleUpload} isUploading={uploadingId === expense.id} />
                           <button 
                             onClick={() => onEdit(expense.id)}
                             className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
@@ -234,7 +302,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                               Parcelada
                             </span>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={parent.observacoes}>{parent.observacoes}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={parent.observacoes || undefined}>{parent.observacoes}</div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-foreground">{parent.categoria}</div>
@@ -259,6 +327,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                            <ReceiptAction expense={parent} onUpload={handleUpload} isUploading={uploadingId === parent.id} />
                             <button 
                               onClick={() => handleDelete(parent.id)}
                               className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"

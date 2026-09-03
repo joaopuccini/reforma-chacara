@@ -243,4 +243,38 @@ export class ExpensesService {
       totalPorCategoria,
     };
   }
+
+  async uploadReceipt(id: string, file: any) {
+    if (!file) throw new Error('Arquivo não fornecido');
+    
+    const expense = await this.findOne(id);
+    
+    const ext = file.originalname.split('.').pop();
+    const fileName = `${id}-${Date.now()}.${ext}`;
+    
+    const { data, error } = await this.client.storage
+      .from('comprovantes')
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
+      
+    if (error) throw new Error(`Erro ao fazer upload: ${error.message}`);
+    
+    const publicUrl = this.client.storage
+      .from('comprovantes')
+      .getPublicUrl(fileName).data.publicUrl;
+      
+    // Atualiza a despesa
+    const { data: updated, error: updateError } = await this.client
+      .from('despesas')
+      .update({ comprovante_url: publicUrl })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (updateError) throw new Error(updateError.message);
+    
+    return updated;
+  }
 }

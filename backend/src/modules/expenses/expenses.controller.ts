@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
@@ -36,5 +37,11 @@ export class ExpensesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.expensesService.remove(id);
+  }
+
+  @Post(':id/receipt')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadReceipt(@Param('id') id: string, @UploadedFile() file: any) {
+    return this.expensesService.uploadReceipt(id, file);
   }
 }

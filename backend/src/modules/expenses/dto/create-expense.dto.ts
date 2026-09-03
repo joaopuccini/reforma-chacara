@@ -69,5 +69,9 @@ export class CreateExpenseDto {
 
   @IsOptional()
   @IsString()
+  comprovante_url?: string;
+
+  @IsOptional()
+  @IsString()
   observacoes?: string;
 }

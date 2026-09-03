@@ -55,10 +55,26 @@ export function useExpenseMutation() {
     },
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const { data } = await api.post(`/expenses/${id}/receipt`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    },
+  });
+
   return {
     createExpense: createMutation.mutateAsync,
     updateExpense: updateMutation.mutateAsync,
     deleteExpense: deleteMutation.mutateAsync,
-    isPending: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    uploadReceipt: uploadMutation.mutateAsync,
+    isPending: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || uploadMutation.isPending,
   };
 }
