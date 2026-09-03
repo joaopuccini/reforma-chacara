@@ -68,12 +68,12 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    await updateExpense({ id, payload: { status: newStatus as 'Pago' | 'Pendente' } });
+    await updateExpense({ id, updates: { status: newStatus as 'Pago' | 'Pendente' } });
   };
 
   const handleTotalChange = async (id: string, newTotal: number) => {
     if (isNaN(newTotal) || newTotal <= 0) return;
-    await updateExpense({ id, payload: { valor_final: newTotal } });
+    await updateExpense({ id, updates: { valor_final: newTotal } });
   };
 
   if (isLoading) {
