@@ -227,46 +227,14 @@ export class ExpensesService {
     const totalGeral = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_parcela), 0);
     const totalPendente = data.filter(d => d.status === 'Pendente').reduce((acc: number, curr: any) => acc + Number(curr.valor_parcela), 0);
     
-    // Pagos por responsável
-    const totalPagoJoao = data
-      .filter(d => d.status === 'Pago' && d.responsavel === 'João')
-      .reduce((acc: number, curr: any) => acc + Number(curr.valor_parcela), 0);
-      
-    const totalPagoFofo = data
-      .filter(d => d.status === 'Pago' && d.responsavel === 'Fofo')
-      .reduce((acc: number, curr: any) => acc + Number(curr.valor_parcela), 0);
-
     const totalPorCategoria = data.reduce((acc: Record<string, number>, curr: any) => {
       acc[curr.categoria] = (acc[curr.categoria] || 0) + Number(curr.valor_parcela);
       return acc;
     }, {} as Record<string, number>);
 
-    let diferenca = Math.abs(totalPagoJoao - totalPagoFofo);
-    let devedor = totalPagoJoao < totalPagoFofo ? 'João' : 'Fofo';
-    let credor = totalPagoJoao > totalPagoFofo ? 'João' : 'Fofo';
-    let valorCompensacao = diferenca / 2;
-    
-    if (diferenca === 0) {
-      devedor = 'Nenhum';
-      credor = 'Nenhum';
-    }
-
-    const resumoTexto = diferenca === 0 
-      ? 'Contas empatadas.' 
-      : `${devedor} deve pagar R$ ${valorCompensacao.toFixed(2)} para ${credor} para igualar os gastos efetuados.`;
-
     return {
       totalGeral,
-      totalPagoJoao,
-      totalPagoFofo,
       totalPendente,
-      acertoContas: {
-        diferenca,
-        devedor,
-        credor,
-        valorCompensacao,
-        resumoTexto,
-      },
       totalPorCategoria,
     };
   }

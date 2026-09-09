@@ -24,15 +24,6 @@ export interface Expense {
 
 export interface Metrics {
   totalGeral: number;
-  totalPagoJoao: number;
-  totalPagoFofo: number;
   totalPendente: number;
-  acertoContas: {
-    diferenca: number;
-    devedor: string;
-    credor: string;
-    valorCompensacao: number;
-    resumoTexto: string;
-  };
   totalPorCategoria: Record<string, number>;
 }

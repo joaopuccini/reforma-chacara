@@ -28,39 +28,29 @@ export default function MetricsCards({ metrics, isLoading }: MetricsCardsProps) 
         <div className="text-2xl font-bold mt-2">{formatCurrency(metrics.totalGeral)}</div>
       </div>
       
-      <div className="glass-card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
-        <p className="text-sm font-medium text-muted-foreground">João (Total Pago)</p>
-        <div className="text-2xl font-bold mt-2">{formatCurrency(metrics.totalPagoJoao)}</div>
-      </div>
-      
-      <div className="glass-card p-6 flex flex-col justify-between border-l-4 border-l-green-500">
-        <p className="text-sm font-medium text-muted-foreground">Fofo (Total Pago)</p>
-        <div className="text-2xl font-bold mt-2">{formatCurrency(metrics.totalPagoFofo)}</div>
-      </div>
-      
       <div className="glass-card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
         <p className="text-sm font-medium text-muted-foreground">Total Pendente (À Pagar)</p>
         <div className="text-2xl font-bold text-amber-500 mt-2">{formatCurrency(metrics.totalPendente)}</div>
       </div>
 
-      {/* Card de Acerto de Contas Ocupando 2 Colunas */}
-      <div className="glass-card p-6 md:col-span-2 lg:col-span-4 bg-primary/5 border border-primary/20 flex flex-col justify-between">
-        <h3 className="text-lg font-bold text-primary mb-2">Acerto de Contas (Divisão 50/50)</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          A diferença de pagamentos entre os dois é de <strong>{formatCurrency(metrics.acertoContas.diferenca)}</strong>.
-        </p>
-        <div className="text-xl font-bold">
-          {metrics.acertoContas.diferenca === 0 ? (
-            <span className="text-green-600">Contas estão empatadas! Tudo certo.</span>
-          ) : (
-            <span>
-              <span className="text-red-500">{metrics.acertoContas.devedor}</span> deve pagar{' '}
-              <span className="text-green-600 font-extrabold">{formatCurrency(metrics.acertoContas.valorCompensacao)}</span>{' '}
-              para <span className="text-blue-500">{metrics.acertoContas.credor}</span>.
-            </span>
-          )}
-        </div>
-      </div>
+      {Object.entries(metrics.totalPorCategoria).map(([categoria, valor], index) => {
+        // Cores intercaladas para as categorias
+        const colors = [
+          'border-l-blue-500', 
+          'border-l-purple-500', 
+          'border-l-emerald-500', 
+          'border-l-pink-500',
+          'border-l-indigo-500'
+        ];
+        const colorClass = colors[index % colors.length];
+
+        return (
+          <div key={categoria} className={`glass-card p-6 flex flex-col justify-between border-l-4 ${colorClass}`}>
+            <p className="text-sm font-medium text-muted-foreground">{categoria}</p>
+            <div className="text-2xl font-bold mt-2">{formatCurrency(valor)}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
