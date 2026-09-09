@@ -6,3 +6,5 @@ build/
 *.log
 coverage/
 .nest/
+.neon
+.env.local

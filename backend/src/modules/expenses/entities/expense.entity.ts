@@ -13,6 +13,7 @@ export class Expense {
   parcelas_total: number;
   valor_parcela: number;
   data_vencimento: Date | null;
+  data_pagamento: Date | null;
   compra_grupo_id: string | null;
   link_comprovante: string;
   observacoes: string;

@@ -62,6 +62,53 @@ function EditableTotal({ expense, onSave }: { expense: Expense, onSave: (val: nu
   </span>
 }
 
+function EditableParcela({ expense, onSave }: { expense: Expense, onSave: (val: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [val, setVal] = useState(expense.valor_parcela);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setVal(expense.valor_parcela);
+  }, [expense.valor_parcela]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (val !== expense.valor_parcela) onSave(val);
+  }
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    }
+  }
+
+  if (isEditing) {
+    return <input 
+      ref={inputRef}
+      autoFocus
+      type="number" 
+      step="0.01"
+      className="w-24 px-1 py-0.5 text-sm bg-background border border-primary rounded outline-none" 
+      value={val} 
+      onChange={e => setVal(parseFloat(e.target.value))} 
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onClick={(e) => e.stopPropagation()}
+    />
+  }
+
+  return <span 
+    className="cursor-pointer hover:text-primary hover:underline underline-offset-2 decoration-dashed transition-colors"
+    onClick={(e) => {
+      e.stopPropagation();
+      setIsEditing(true);
+    }}
+    title="Clique para editar o valor da parcela"
+  >
+    {formatCurrency(expense.valor_parcela)}
+  </span>
+}
+
 function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, onUpload: (id: string, file: File) => void, isUploading: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,6 +223,15 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
     await updateExpense({ id, updates: { valor_final: newTotal } });
   };
 
+  const handleParcelaChange = async (id: string, newParcela: number) => {
+    if (isNaN(newParcela) || newParcela <= 0) return;
+    await updateExpense({ id, updates: { valor_parcela: newParcela } });
+  };
+
+  const handleResponsavelChange = async (id: string, novoResponsavel: string) => {
+    await updateExpense({ id, updates: { responsavel: novoResponsavel } });
+  };
+
   if (isLoading) {
     return <div className="h-64 flex items-center justify-center">Carregando...</div>;
   }
@@ -237,17 +293,24 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                         {expense.data_vencimento ? new Date(expense.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <select 
-                          value={expense.status}
-                          onChange={(e) => handleStatusChange(expense.id, e.target.value)}
-                          className={clsx(
-                            "px-2 py-0.5 rounded text-xs font-medium cursor-pointer appearance-none outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-0",
-                            expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        <div className="flex flex-col gap-1">
+                          <select 
+                            value={expense.status}
+                            onChange={(e) => handleStatusChange(expense.id, e.target.value)}
+                            className={clsx(
+                              "px-2 py-0.5 rounded text-xs font-medium cursor-pointer appearance-none outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-0",
+                              expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                            )}
+                          >
+                            <option value="Pago" className="bg-background text-foreground">Pago</option>
+                            <option value="Pendente" className="bg-background text-foreground">Pendente</option>
+                          </select>
+                          {expense.status === 'Pago' && expense.data_pagamento && (
+                            <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              em {new Date(expense.data_pagamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                            </div>
                           )}
-                        >
-                          <option value="Pago" className="bg-background text-foreground">Pago</option>
-                          <option value="Pendente" className="bg-background text-foreground">Pendente</option>
-                        </select>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -360,28 +423,45 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                             —
                           </td>
                           <td className="px-4 py-3 font-medium text-foreground">
-                            {formatCurrency(expense.valor_parcela)}
+                            <EditableParcela expense={expense} onSave={(val) => handleParcelaChange(expense.id, val)} />
                           </td>
                           <td className="px-4 py-3 text-sm opacity-80">{expense.origem_pagamento}</td>
-                          <td className="px-4 py-3 text-sm opacity-80">{expense.responsavel}</td>
+                          <td className="px-4 py-3 text-sm opacity-80">
+                            <select 
+                              value={expense.responsavel}
+                              onChange={(e) => handleResponsavelChange(expense.id, e.target.value)}
+                              className="bg-transparent border-0 outline-none cursor-pointer focus-visible:ring-1 focus-visible:ring-ring rounded px-1"
+                            >
+                              <option value="João">João</option>
+                              <option value="Fofo">Fofo</option>
+                            </select>
+                          </td>
                           <td className="px-4 py-3 text-sm">
                             {expense.data_vencimento ? new Date(expense.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
                           </td>
                           <td className="px-4 py-3">
-                            <select 
-                              value={expense.status}
-                              onChange={(e) => handleStatusChange(expense.id, e.target.value)}
-                              className={clsx(
-                                "px-2 py-0.5 rounded text-xs font-medium cursor-pointer appearance-none outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-0",
-                                expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                            <div className="flex flex-col gap-1">
+                              <select 
+                                value={expense.status}
+                                onChange={(e) => handleStatusChange(expense.id, e.target.value)}
+                                className={clsx(
+                                  "px-2 py-0.5 rounded text-xs font-medium cursor-pointer appearance-none outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border-0",
+                                  expense.status === 'Pago' ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                )}
+                              >
+                                <option value="Pago" className="bg-background text-foreground">Pago</option>
+                                <option value="Pendente" className="bg-background text-foreground">Pendente</option>
+                              </select>
+                              {expense.status === 'Pago' && expense.data_pagamento && (
+                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  em {new Date(expense.data_pagamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                </div>
                               )}
-                            >
-                              <option value="Pago" className="bg-background text-foreground">Pago</option>
-                              <option value="Pendente" className="bg-background text-foreground">Pendente</option>
-                            </select>
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                              <ReceiptAction expense={expense} onUpload={handleUpload} isUploading={uploadingId === expense.id} />
                               <button 
                                 onClick={() => onEdit(expense.id)}
                                 className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"

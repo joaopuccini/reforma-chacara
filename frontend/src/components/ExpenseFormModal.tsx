@@ -27,6 +27,17 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
     observacoes: ''
   });
 
+  const [useCustomInstallments, setUseCustomInstallments] = useState(false);
+  const [customValores, setCustomValores] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (formData.parcelas_total > customValores.length) {
+      setCustomValores(prev => [...prev, ...Array(formData.parcelas_total - prev.length).fill(0)]);
+    } else if (formData.parcelas_total < customValores.length) {
+      setCustomValores(prev => prev.slice(0, formData.parcelas_total));
+    }
+  }, [formData.parcelas_total]);
+
   useEffect(() => {
     if (expenseId) {
       api.get(`/expenses/${expenseId}`).then(res => {
@@ -71,10 +82,21 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload: any = { ...formData, status: formData.status as 'Pago' | 'Pendente' };
+      
+      if (!expenseId && formData.parcelas_total > 1 && useCustomInstallments) {
+        payload.valores_parcelas = customValores;
+        const sum = customValores.reduce((a, b) => a + b, 0);
+        if (Math.abs(sum - formData.valor_final) > 0.05) {
+          alert('A soma das parcelas deve ser igual ao Valor Final!');
+          return;
+        }
+      }
+
       if (expenseId) {
-        await updateExpense({ id: expenseId, updates: { ...formData, status: formData.status as 'Pago' | 'Pendente' } });
+        await updateExpense({ id: expenseId, updates: payload });
       } else {
-        await createExpense({ ...formData, status: formData.status as 'Pago' | 'Pendente' });
+        await createExpense(payload);
       }
       onClose();
     } catch (error) {
@@ -157,12 +179,77 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
             </div>
             
             {!expenseId && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Qtd. Parcelas *</label>
-                  <input required type="number" min="1" step="1" name="parcelas_total" value={formData.parcelas_total} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
-                  <p className="text-xs text-muted-foreground">O sistema dividirá o Valor Final automaticamente se &gt; 1.</p>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Qtd. Parcelas *</label>
+                    <input required type="number" min="1" step="1" name="parcelas_total" value={formData.parcelas_total} onChange={handleChange} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
+                  </div>
                 </div>
+
+                {formData.parcelas_total > 1 && (
+                  <div className="space-y-4 border border-border rounded-md p-4 bg-muted/10">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="customInstallments" 
+                        checked={useCustomInstallments} 
+                        onChange={(e) => setUseCustomInstallments(e.target.checked)}
+                        className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <label htmlFor="customInstallments" className="text-sm font-medium cursor-pointer">
+                        Definir valores manualmente por parcela
+                      </label>
+                    </div>
+
+                    {useCustomInstallments ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {customValores.map((val, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">{idx + 1}ª Parcela</label>
+                              <input 
+                                type="number" 
+                                step="0.01"
+                                value={val || ''} 
+                                onChange={(e) => {
+                                  const newVals = [...customValores];
+                                  newVals[idx] = parseFloat(e.target.value) || 0;
+                                  setCustomValores(newVals);
+                                }} 
+                                className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm" 
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-sm flex items-center justify-between pt-2 border-t border-border/50">
+                          <span className="text-muted-foreground">Soma das parcelas:</span>
+                          <span className={`font-semibold ${Math.abs(customValores.reduce((a, b) => a + b, 0) - formData.valor_final) > 0.05 ? 'text-destructive' : 'text-emerald-500'}`}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(customValores.reduce((a, b) => a + b, 0))}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm space-y-1">
+                        <p className="text-muted-foreground mb-2">O sistema dividirá o valor igualmente:</p>
+                        <div className="bg-background border border-border rounded p-3 space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-foreground">1ª parcela (à vista):</span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.floor((formData.valor_final / formData.parcelas_total) * 100) / 100)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-foreground">Demais {formData.parcelas_total - 1} parcelas (mensais):</span>
+                            <span className="font-semibold text-muted-foreground">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.floor((formData.valor_final / formData.parcelas_total) * 100) / 100)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             

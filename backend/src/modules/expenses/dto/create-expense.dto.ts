@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsIn, IsOptional, Min, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsIn, IsOptional, Min, IsUUID, IsArray } from 'class-validator';
 
 export class CreateExpenseDto {
   @IsNotEmpty()
@@ -44,6 +44,11 @@ export class CreateExpenseDto {
   @IsNumber()
   @Min(1)
   parcelas_total?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  valores_parcelas?: number[];
 
   // Os campos abaixo serão calculados/preenchidos pelo backend (não exigidos do client na criação primária)
   @IsOptional()

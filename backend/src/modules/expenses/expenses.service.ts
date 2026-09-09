@@ -69,7 +69,9 @@ export class ExpensesService {
         parcelas_total: 1,
         valor_parcela: createExpenseDto.valor_final,
         data_vencimento: null,
+        data_pagamento: createExpenseDto.status === 'Pago' ? new Date().toISOString() : null,
       };
+      delete expenseToInsert.valores_parcelas;
 
       const { data, error } = await this.client
         .from('despesas')
@@ -82,6 +84,12 @@ export class ExpensesService {
     } else {
       // Compra parcelada
       const compraGrupoId = randomUUID();
+      
+      let isCustomValues = false;
+      if (createExpenseDto.valores_parcelas && createExpenseDto.valores_parcelas.length === parcelasTotal) {
+        isCustomValues = true;
+      }
+
       const valorBaseParcela = Math.floor((createExpenseDto.valor_final / parcelasTotal) * 100) / 100;
       let somaParcelasBase = valorBaseParcela * (parcelasTotal - 1);
       const valorUltimaParcela = Number((createExpenseDto.valor_final - somaParcelasBase).toFixed(2));
@@ -91,7 +99,7 @@ export class ExpensesService {
 
       for (let i = 1; i <= parcelasTotal; i++) {
         const isPrimeira = i === 1;
-        const valorAtual = i === parcelasTotal ? valorUltimaParcela : valorBaseParcela;
+        const valorAtual = isCustomValues ? createExpenseDto.valores_parcelas![i - 1] : (i === parcelasTotal ? valorUltimaParcela : valorBaseParcela);
         
         let dataVencimento = null;
         if (!isPrimeira) {
@@ -100,15 +108,21 @@ export class ExpensesService {
           dataVencimento = new Date(hoje.getFullYear(), mesVencimento, 10);
         }
 
-        parcelasToInsert.push({
+        const status = createExpenseDto.status ? createExpenseDto.status : (isPrimeira ? 'Pago' : 'Pendente');
+
+        const parcela = {
           ...createExpenseDto,
           compra_grupo_id: compraGrupoId,
           parcela_numero: i,
           parcelas_total: parcelasTotal,
           valor_parcela: valorAtual,
-          status: isPrimeira ? 'Pago' : 'Pendente',
+          status: status,
           data_vencimento: dataVencimento ? dataVencimento.toISOString().split('T')[0] : null,
-        });
+          data_pagamento: status === 'Pago' ? new Date().toISOString() : null,
+        };
+        delete parcela.valores_parcelas;
+        
+        parcelasToInsert.push(parcela);
       }
 
       const { data, error } = await this.client
@@ -126,32 +140,44 @@ export class ExpensesService {
 
     // Se houver alteração de valor_final e for uma compra parcelada (grupo)
     if (updateExpenseDto.valor_final !== undefined && existing.compra_grupo_id && existing.parcelas_total > 1) {
-      const parcelasTotal = existing.parcelas_total;
-      const novoValorFinal = updateExpenseDto.valor_final;
+      // Somente recalcula tudo se NÃO estivermos atualizando APENAS o valor da parcela isolada
+      // Se tivermos updateExpenseDto.valor_parcela sendo passado, é edição individual.
+      if (updateExpenseDto.valor_parcela === undefined) {
+        const parcelasTotal = existing.parcelas_total;
+        const novoValorFinal = updateExpenseDto.valor_final;
 
-      const valorBaseParcela = Math.floor((novoValorFinal / parcelasTotal) * 100) / 100;
-      const somaParcelasBase = valorBaseParcela * (parcelasTotal - 1);
-      const valorUltimaParcela = Number((novoValorFinal - somaParcelasBase).toFixed(2));
+        const valorBaseParcela = Math.floor((novoValorFinal / parcelasTotal) * 100) / 100;
+        const somaParcelasBase = valorBaseParcela * (parcelasTotal - 1);
+        const valorUltimaParcela = Number((novoValorFinal - somaParcelasBase).toFixed(2));
 
-      // Atualiza parcelas de 1 a N-1
-      await this.client
-        .from('despesas')
-        .update({ valor_final: novoValorFinal, valor_parcela: valorBaseParcela })
-        .eq('compra_grupo_id', existing.compra_grupo_id)
-        .neq('parcela_numero', parcelasTotal);
+        // Atualiza parcelas de 1 a N-1
+        await this.client
+          .from('despesas')
+          .update({ valor_final: novoValorFinal, valor_parcela: valorBaseParcela })
+          .eq('compra_grupo_id', existing.compra_grupo_id)
+          .neq('parcela_numero', parcelasTotal);
 
-      // Atualiza a última parcela (para corrigir os centavos)
-      await this.client
-        .from('despesas')
-        .update({ valor_final: novoValorFinal, valor_parcela: valorUltimaParcela })
-        .eq('compra_grupo_id', existing.compra_grupo_id)
-        .eq('parcela_numero', parcelasTotal);
+        // Atualiza a última parcela (para corrigir os centavos)
+        await this.client
+          .from('despesas')
+          .update({ valor_final: novoValorFinal, valor_parcela: valorUltimaParcela })
+          .eq('compra_grupo_id', existing.compra_grupo_id)
+          .eq('parcela_numero', parcelasTotal);
 
-      // Remover valor_final do DTO, pois já tratamos todas as parcelas no banco
-      delete updateExpenseDto.valor_final;
-    } else if (updateExpenseDto.valor_final !== undefined) {
+        // Remover valor_final do DTO, pois já tratamos todas as parcelas no banco
+        delete updateExpenseDto.valor_final;
+      }
+    } else if (updateExpenseDto.valor_final !== undefined && existing.parcelas_total === 1) {
       // Compra à vista ou edição isolada
       updateExpenseDto.valor_parcela = updateExpenseDto.valor_final;
+    }
+
+    if (updateExpenseDto.status) {
+      if (updateExpenseDto.status === 'Pago' && existing.status !== 'Pago') {
+        (updateExpenseDto as any).data_pagamento = new Date().toISOString();
+      } else if (updateExpenseDto.status === 'Pendente' && existing.status !== 'Pendente') {
+        (updateExpenseDto as any).data_pagamento = null;
+      }
     }
 
     // Processa quaisquer campos restantes (ex: status, observacoes) para a linha selecionada
