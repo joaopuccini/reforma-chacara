@@ -246,6 +246,24 @@ export class ExpensesService {
     };
   }
 
+  async getEtapas() {
+    const { data, error } = await this.client
+      .from('despesas')
+      .select('etapa');
+
+    if (error) throw new Error(error.message);
+
+    const etapas = [...new Set(data.map((d: any) => d.etapa).filter(Boolean))] as string[];
+    
+    // Se por algum motivo o banco estiver vazio, retorna Laje como padrão
+    if (etapas.length === 0) {
+      return ['Laje'];
+    }
+
+    // Ordenar alfabeticamente
+    return etapas.sort((a, b) => a.localeCompare(b));
+  }
+
   async uploadBuffer(fileName: string, buffer: Buffer | ArrayBuffer, mimeType: string): Promise<string> {
     const { data, error } = await this.client.storage
       .from('comprovantes')

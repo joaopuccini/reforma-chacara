@@ -5,7 +5,7 @@ import FilterBar from './components/FilterBar';
 import ExpenseTable from './components/ExpenseTable';
 import ExpenseFormModal from './components/ExpenseFormModal';
 import { useExpenses } from './hooks/useExpenses';
-import { useMetrics } from './hooks/useMetrics';
+import { useMetrics, useEtapas } from './hooks/useMetrics';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,11 +19,12 @@ function App() {
     origem_pagamento: '',
     responsavel: '',
     search: '',
-    etapa: 'Reforma casa'
+    etapa: 'Laje'
   });
 
   const { data, isLoading } = useExpenses(filters);
   const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa);
+  const { data: etapas = ['Laje'] } = useEtapas();
 
   const handleOpenModal = (id?: string) => {
     setEditingExpenseId(id || null);
@@ -48,7 +49,7 @@ function App() {
       origem_pagamento: '',
       responsavel: '',
       search: '',
-      etapa: 'Reforma casa'
+      etapa: 'Laje'
     });
   };
 
@@ -59,7 +60,7 @@ function App() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
         {/* Etapa Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          {['Reforma casa', 'Parte Elétrica', 'Parte Hidráulica', 'Acabamento', 'Outros'].map((etapa) => (
+          {etapas.map((etapa) => (
             <button
               key={etapa}
               onClick={() => handleFilterChange('etapa', etapa)}

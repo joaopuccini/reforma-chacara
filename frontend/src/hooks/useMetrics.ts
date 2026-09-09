@@ -11,3 +11,13 @@ export function useMetrics(etapa?: string) {
     },
   });
 }
+
+export function useEtapas() {
+  return useQuery({
+    queryKey: ['etapas'],
+    queryFn: async () => {
+      const { data } = await api.get('/expenses/etapas');
+      return data as string[];
+    },
+  });
+}

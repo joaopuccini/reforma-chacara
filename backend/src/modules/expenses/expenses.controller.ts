@@ -19,6 +19,11 @@ export class ExpensesController {
     return this.expensesService.getMetrics(etapa);
   }
 
+  @Get('etapas')
+  getEtapas() {
+    return this.expensesService.getEtapas();
+  }
+
   @Get()
   findAll(@Query() query: QueryExpenseDto) {
     return this.expensesService.findAll(query);

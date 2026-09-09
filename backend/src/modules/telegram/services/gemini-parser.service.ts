@@ -31,7 +31,7 @@ REGRAS DE EXTRAÇÃO PARA INSERT/UPDATE:
 - Origem do Pagamento obrigatória: 'PIX', 'DINHEIRO', 'CARTAO_CREDITO_JOAO', 'CARTAO_PRETO_CREDITO_FOFO'
 - Responsável obrigatório: 'João' ou 'Fofo'. (Ex: Se usou cartão do João, responsável é João. Se pagou no PIX, descubra quem fez o PIX). Se não estiver explícito, pergunte ou deduza do contexto.
 - Categorias válidas: "Mão de Obra", "Material para a Casa", "Material de Apoio", "Serviços e Locações".
-- Etapa obrigatória: Tente deduzir a qual etapa/projeto da reforma essa despesa pertence (Ex: "Reforma do Forro", "Parte Elétrica", "Parte Hidráulica"). Se não souber, use "Reforma do Forro".
+- Etapa obrigatória: Tente deduzir a qual etapa/projeto da reforma essa despesa pertence (Ex: "Laje", "Parte Elétrica", "Parte Hidráulica"). Se não souber, use "Laje".
 - Parcelas: Apenas o NÚMERO TOTAL de parcelas. Ex: 5 (para 5x), 1 (para à vista).
 
 JSON SCHEMA DE RETORNO OBRIGATÓRIO:
