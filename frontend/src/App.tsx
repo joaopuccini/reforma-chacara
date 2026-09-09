@@ -60,6 +60,16 @@ function App() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
         {/* Etapa Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <button
+            onClick={() => handleFilterChange('etapa', '')}
+            className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+              !filters.etapa || filters.etapa === ''
+                ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
+                : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            }`}
+          >
+            Todas as Etapas
+          </button>
           {etapas.map((etapa) => (
             <button
               key={etapa}
