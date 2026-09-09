@@ -8,6 +8,7 @@ interface QueryParams {
   categoria?: string;
   status?: string;
   search?: string;
+  etapa?: string;
 }
 
 export function useExpenses(params: QueryParams) {

@@ -18,11 +18,12 @@ function App() {
     status: '',
     origem_pagamento: '',
     responsavel: '',
-    search: ''
+    search: '',
+    etapa: 'Reforma casa'
   });
 
   const { data, isLoading } = useExpenses(filters);
-  const { data: metrics, isLoading: isLoadingMetrics } = useMetrics();
+  const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa);
 
   const handleOpenModal = (id?: string) => {
     setEditingExpenseId(id || null);
@@ -46,7 +47,8 @@ function App() {
       status: '',
       origem_pagamento: '',
       responsavel: '',
-      search: ''
+      search: '',
+      etapa: 'Reforma casa'
     });
   };
 
@@ -55,6 +57,23 @@ function App() {
       <Navbar onNewExpense={() => handleOpenModal()} />
       
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
+        {/* Etapa Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          {['Reforma casa', 'Parte Elétrica', 'Parte Hidráulica', 'Acabamento', 'Outros'].map((etapa) => (
+            <button
+              key={etapa}
+              onClick={() => handleFilterChange('etapa', etapa)}
+              className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                filters.etapa === etapa 
+                  ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
+                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              }`}
+            >
+              {etapa}
+            </button>
+          ))}
+        </div>
+
         <MetricsCards 
           metrics={metrics} 
           isLoading={isLoadingMetrics} 

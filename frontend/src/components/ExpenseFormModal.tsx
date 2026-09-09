@@ -15,6 +15,7 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
     descricao: '',
     categoria: 'Material para a Casa',
     subcategoria: '',
+    etapa: 'Reforma casa',
     valor_bruto: 0,
     desconto: 0,
     valor_final: 0,
@@ -45,6 +46,7 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
           descricao: res.data.descricao || '',
           categoria: res.data.categoria || 'Material para a Casa',
           subcategoria: res.data.subcategoria || '',
+          etapa: res.data.etapa || 'Reforma casa',
           valor_bruto: Number(res.data.valor_bruto) || 0,
           desconto: Number(res.data.desconto) || 0,
           valor_final: Number(res.data.valor_final) || 0,
@@ -130,6 +132,10 @@ export default function ExpenseFormModal({ expenseId, onClose }: ExpenseFormModa
                   <option value="Material de Apoio">Material de Apoio</option>
                   <option value="Serviços e Locações">Serviços e Locações</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Etapa da Obra *</label>
+                <input required type="text" name="etapa" value={formData.etapa} onChange={handleChange} placeholder="Ex: Reforma casa, Elétrica..." className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Subcategoria *</label>

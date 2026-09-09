@@ -15,8 +15,8 @@ export class ExpensesController {
   }
 
   @Get('metrics')
-  getMetrics() {
-    return this.expensesService.getMetrics();
+  getMetrics(@Query('etapa') etapa?: string) {
+    return this.expensesService.getMetrics(etapa);
   }
 
   @Get()

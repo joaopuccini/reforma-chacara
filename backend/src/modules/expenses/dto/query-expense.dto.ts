@@ -41,4 +41,8 @@ export class QueryExpenseDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  etapa?: string;
 }

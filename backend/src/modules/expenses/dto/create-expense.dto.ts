@@ -14,6 +14,10 @@ export class CreateExpenseDto {
   subcategoria: string;
 
   @IsOptional()
+  @IsString()
+  etapa?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   valor_bruto?: number;

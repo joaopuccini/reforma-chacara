@@ -15,13 +15,14 @@ export class ExpensesService {
   }
 
   async findAll(query: QueryExpenseDto) {
-    const { page = 1, limit = 20, categoria, status, origem_pagamento, responsavel, search, startDate, endDate } = query;
+    const { page = 1, limit = 20, categoria, status, origem_pagamento, responsavel, search, startDate, endDate, etapa } = query;
     const offset = (page - 1) * limit;
 
     let dbQuery = this.client
       .from('despesas')
       .select('*', { count: 'exact' });
 
+    if (etapa) dbQuery = dbQuery.eq('etapa', etapa);
     if (categoria) dbQuery = dbQuery.eq('categoria', categoria);
     if (status) dbQuery = dbQuery.eq('status', status);
     if (origem_pagamento) dbQuery = dbQuery.eq('origem_pagamento', origem_pagamento);
@@ -217,10 +218,16 @@ export class ExpensesService {
     return { success: true };
   }
 
-  async getMetrics() {
-    const { data, error } = await this.client
+  async getMetrics(etapa?: string) {
+    let dbQuery = this.client
       .from('despesas')
       .select('valor_parcela, responsavel, status, categoria');
+      
+    if (etapa) {
+      dbQuery = dbQuery.eq('etapa', etapa);
+    }
+
+    const { data, error } = await dbQuery;
 
     if (error) throw new Error(error.message);
 

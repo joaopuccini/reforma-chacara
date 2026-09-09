@@ -3,6 +3,7 @@ export class Expense {
   descricao: string;
   categoria: string;
   subcategoria: string;
+  etapa: string;
   valor_bruto: number;
   desconto: number;
   valor_final: number;
