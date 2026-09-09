@@ -264,13 +264,13 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                 if (!group.isGroup) {
                   const expense = group.items[0];
                   return (
-                    <tr 
-                      key={expense.id} 
-                      className={clsx(
-                        "border-b border-border last:border-0 hover:bg-muted/30 transition-colors border-l-[3px]",
-                        expense.status === 'Pago' ? "border-l-emerald-500" : "border-l-amber-500"
-                      )}
-                    >
+                      <tr 
+                        key={expense.id} 
+                        className={clsx(
+                          "border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors border-l-[3px]",
+                          expense.status === 'Pago' ? "border-l-emerald-500" : "border-l-amber-500"
+                        )}
+                      >
                       <td className="w-8 px-2 py-3"></td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground">{expense.descricao}</div>
@@ -356,7 +356,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                       <tr 
                         onClick={() => toggleGroup(group.id)}
                         className={clsx(
-                          "border-b border-border last:border-0 hover:bg-muted/30 transition-colors border-l-[3px] cursor-pointer",
+                          "border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors border-l-[3px] cursor-pointer",
                           isExpanded ? "bg-muted/10" : "",
                           isAllPaid ? "border-l-emerald-500" : "border-l-amber-500"
                         )}
@@ -414,7 +414,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                         <tr 
                           key={expense.id} 
                           className={clsx(
-                            "border-b border-border last:border-0 hover:bg-muted/40 transition-colors bg-muted/20 border-l-[3px]",
+                            "border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors bg-muted/20 border-l-[3px]",
                             expense.status === 'Pago' ? "border-l-emerald-500/40" : "border-l-amber-500/40"
                           )}
                         >
