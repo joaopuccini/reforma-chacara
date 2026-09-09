@@ -245,7 +245,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
       <div className="rounded-md border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+            <thead className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/50 border-b border-border">
               <tr>
                 <th className="w-8 px-2 py-3"></th>
                 <th className="px-4 py-3 font-medium">Descrição</th>
