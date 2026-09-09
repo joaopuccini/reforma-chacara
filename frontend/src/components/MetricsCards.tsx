@@ -3,12 +3,15 @@ import { Metrics } from '../types/expense';
 interface MetricsCardsProps {
   metrics: Metrics | undefined;
   isLoading: boolean;
+  activeCategory: string;
+  onCategoryClick: (categoria: string) => void;
+  onClearFilters: () => void;
 }
 
 const formatCurrency = (value: number) => 
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
-export default function MetricsCards({ metrics, isLoading }: MetricsCardsProps) {
+export default function MetricsCards({ metrics, isLoading, activeCategory, onCategoryClick, onClearFilters }: MetricsCardsProps) {
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -23,7 +26,11 @@ export default function MetricsCards({ metrics, isLoading }: MetricsCardsProps) 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="glass-card p-6 flex flex-col justify-between">
+      <div 
+        className="glass-card p-6 flex flex-col justify-between cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={onClearFilters}
+        title="Limpar todos os filtros"
+      >
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider text-[11px]">Gasto Total da Obra</p>
         <div className="text-2xl font-bold mt-2 tracking-tight">{formatCurrency(metrics.totalGeral)}</div>
       </div>
@@ -45,7 +52,12 @@ export default function MetricsCards({ metrics, isLoading }: MetricsCardsProps) 
         const colorClass = colors[index % colors.length];
 
         return (
-          <div key={categoria} className={`glass-card p-6 flex flex-col justify-between border-t ${colorClass}`}>
+          <div 
+            key={categoria} 
+            className={`glass-card p-6 flex flex-col justify-between border-t ${colorClass} cursor-pointer transition-all duration-200 ${activeCategory === categoria ? 'ring-2 ring-primary bg-primary/5 shadow-[0_0_15px_rgba(30,64,175,0.2)]' : 'hover:bg-muted/20'}`}
+            onClick={() => onCategoryClick(activeCategory === categoria ? '' : categoria)}
+            title={activeCategory === categoria ? 'Remover filtro' : `Filtrar por ${categoria}`}
+          >
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider text-[11px] truncate" title={categoria}>{categoria}</p>
             <div className="text-2xl font-bold mt-2 tracking-tight">{formatCurrency(valor)}</div>
           </div>

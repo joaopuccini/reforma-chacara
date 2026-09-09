@@ -9,9 +9,10 @@ interface FilterBarProps {
     search: string;
   };
   onFilterChange: (key: string, value: string) => void;
+  onClearFilters: () => void;
 }
 
-export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
+export default function FilterBar({ filters, onFilterChange, onClearFilters }: FilterBarProps) {
   const categorias = [
     'Mão de Obra',
     'Material para a Casa',
@@ -35,9 +36,9 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-1 sm:justify-end">
           <select
-            className="flex h-9 w-full sm:w-[160px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
             value={filters.categoria}
             onChange={(e) => onFilterChange('categoria', e.target.value)}
           >
@@ -46,7 +47,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-[140px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
             value={filters.origem_pagamento}
             onChange={(e) => onFilterChange('origem_pagamento', e.target.value)}
           >
@@ -58,7 +59,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-[140px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
             value={filters.responsavel}
             onChange={(e) => onFilterChange('responsavel', e.target.value)}
           >
@@ -68,7 +69,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-[120px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
             value={filters.status}
             onChange={(e) => onFilterChange('status', e.target.value)}
           >
@@ -76,6 +77,16 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
             <option value="Pago">Pago</option>
             <option value="Pendente">Pendente</option>
           </select>
+
+          {(filters.categoria || filters.status || filters.origem_pagamento || filters.responsavel || filters.search) && (
+            <button
+              onClick={onClearFilters}
+              className="h-9 px-3 w-full sm:w-auto rounded-md border border-input bg-muted/50 hover:bg-muted text-sm transition-colors whitespace-nowrap"
+              title="Limpar todos os filtros"
+            >
+              Limpar Filtros
+            </button>
+          )}
         </div>
       </div>
     </div>
