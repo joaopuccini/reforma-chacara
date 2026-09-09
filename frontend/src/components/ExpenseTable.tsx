@@ -288,7 +288,16 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                         {expense.parcelas_total > 1 && <span className="ml-1 text-xs">({expense.parcela_numero}/{expense.parcelas_total})</span>}
                       </td>
                       <td className="px-4 py-3 text-sm">{expense.origem_pagamento}</td>
-                      <td className="px-4 py-3 text-sm">{expense.responsavel}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <select 
+                          value={expense.responsavel}
+                          onChange={(e) => handleResponsavelChange(expense.id, e.target.value)}
+                          className="bg-transparent border-0 outline-none cursor-pointer focus-visible:ring-1 focus-visible:ring-ring rounded px-1 -ml-1"
+                        >
+                          <option value="João">João</option>
+                          <option value="Fofo">Fofo</option>
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         {expense.data_vencimento ? new Date(expense.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
                       </td>
