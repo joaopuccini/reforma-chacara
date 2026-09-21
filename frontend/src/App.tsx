@@ -19,7 +19,7 @@ function App() {
     origem_pagamento: '',
     responsavel: '',
     search: '',
-    etapa: 'Laje'
+    etapa: ''
   });
 
   const { data, isLoading } = useExpenses(filters);
@@ -49,7 +49,7 @@ function App() {
       origem_pagamento: '',
       responsavel: '',
       search: '',
-      etapa: 'Laje'
+      etapa: ''
     });
   };
 

@@ -109,6 +109,52 @@ function EditableParcela({ expense, onSave }: { expense: Expense, onSave: (val: 
   </span>
 }
 
+function EditableEtapa({ expense, onSave }: { expense: Expense, onSave: (val: string) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [val, setVal] = useState(expense.etapa || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setVal(expense.etapa || '');
+  }, [expense.etapa]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (val !== expense.etapa) onSave(val);
+  }
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    }
+  }
+
+  if (isEditing) {
+    return <input 
+      ref={inputRef}
+      autoFocus
+      type="text" 
+      className="w-24 px-1 py-0.5 text-sm bg-background border border-primary rounded outline-none" 
+      value={val} 
+      onChange={e => setVal(e.target.value)} 
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onClick={(e) => e.stopPropagation()}
+    />
+  }
+
+  return <span 
+    className="cursor-pointer hover:text-primary hover:underline underline-offset-2 decoration-dashed transition-colors"
+    onClick={(e) => {
+      e.stopPropagation();
+      setIsEditing(true);
+    }}
+    title="Clique para editar a etapa"
+  >
+    {expense.etapa || '—'}
+  </span>
+}
+
 function ReceiptAction({ expense, onUpload, isUploading }: { expense: Expense, onUpload: (id: string, file: File) => void, isUploading: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -205,6 +251,12 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
       }
     });
 
+    result.forEach(group => {
+      if (group.isGroup) {
+        group.items.sort((a, b) => a.parcela_numero - b.parcela_numero);
+      }
+    });
+
     return result;
   }, [data]);
 
@@ -232,6 +284,16 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
     await updateExpense({ id, updates: { responsavel: novoResponsavel } });
   };
 
+  const handleEtapaChange = async (expense: Expense, newEtapa: string) => {
+    if (!newEtapa.trim()) return;
+    if (expense.compra_grupo_id && expense.parcelas_total > 1) {
+      const groupItems = groupedData.find(g => g.id === expense.compra_grupo_id)?.items || [];
+      await Promise.all(groupItems.map(item => updateExpense({ id: item.id, updates: { etapa: newEtapa } })));
+    } else {
+      await updateExpense({ id: expense.id, updates: { etapa: newEtapa } });
+    }
+  };
+
   if (isLoading) {
     return <div className="h-64 flex items-center justify-center">Carregando...</div>;
   }
@@ -250,6 +312,7 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                 <th className="w-8 px-2 py-3"></th>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Categoria</th>
+                <th className="px-4 py-3 font-medium">Etapa</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Parcela (R$)</th>
                 <th className="px-4 py-3 font-medium">Origem</th>
@@ -279,6 +342,9 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                       <td className="px-4 py-3">
                         <div className="text-foreground">{expense.categoria}</div>
                         <div className="text-xs text-muted-foreground">{expense.subcategoria}</div>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-muted-foreground">
+                        <EditableEtapa expense={expense} onSave={(val) => handleEtapaChange(expense, val)} />
                       </td>
                       <td className="px-4 py-3 font-medium">
                         <EditableTotal expense={expense} onSave={(val) => handleTotalChange(expense.id, val)} />
@@ -379,6 +445,9 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                           <div className="text-foreground">{parent.categoria}</div>
                           <div className="text-xs text-muted-foreground">{parent.subcategoria}</div>
                         </td>
+                        <td className="px-4 py-3 font-medium text-muted-foreground">
+                          <EditableEtapa expense={parent} onSave={(val) => handleEtapaChange(parent, val)} />
+                        </td>
                         <td className="px-4 py-3 font-medium">
                           <EditableTotal expense={parent} onSave={(val) => handleTotalChange(parent.id, val)} />
                         </td>
@@ -427,6 +496,9 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
                           </td>
                           <td className="px-4 py-3 opacity-70">
                             <div className="text-xs">{expense.subcategoria}</div>
+                          </td>
+                          <td className="px-4 py-3 opacity-40 text-sm">
+                            —
                           </td>
                           <td className="px-4 py-3 opacity-40 text-sm">
                             —
