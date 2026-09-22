@@ -4,10 +4,12 @@ import MetricsCards from './components/MetricsCards';
 import FilterBar from './components/FilterBar';
 import ExpenseTable from './components/ExpenseTable';
 import ExpenseFormModal from './components/ExpenseFormModal';
+import { PlanningDashboard } from './components/PlanningDashboard';
 import { useExpenses } from './hooks/useExpenses';
 import { useMetrics, useEtapas } from './hooks/useMetrics';
 
 function App() {
+  const [activeTab, setActiveTab] = useState<'REALIZED' | 'PLANNING'>('REALIZED');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   
@@ -58,56 +60,86 @@ function App() {
       <Navbar onNewExpense={() => handleOpenModal()} />
       
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
-        {/* Etapa Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* Main Tabs */}
+        <div className="flex border-b border-gray-200 mb-6">
           <button
-            onClick={() => handleFilterChange('etapa', '')}
-            className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-              !filters.etapa || filters.etapa === ''
-                ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
-                : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            onClick={() => setActiveTab('REALIZED')}
+            className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'REALIZED'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Todas as Etapas
+            📊 Realizado (Consolidado)
           </button>
-          {etapas.map((etapa) => (
-            <button
-              key={etapa}
-              onClick={() => handleFilterChange('etapa', etapa)}
-              className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                filters.etapa === etapa 
-                  ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
-                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              }`}
-            >
-              {etapa}
-            </button>
-          ))}
+          <button
+            onClick={() => setActiveTab('PLANNING')}
+            className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'PLANNING'
+                ? 'border-violet-500 text-violet-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            🔮 Planejamento & Prazos
+          </button>
         </div>
 
-        <MetricsCards 
-          metrics={metrics} 
-          isLoading={isLoadingMetrics} 
-          activeCategory={filters.categoria}
-          onCategoryClick={(cat) => handleFilterChange('categoria', cat)}
-          onClearFilters={handleClearFilters}
-        />
-        
-        <div className="glass rounded-xl p-4 sm:p-6 space-y-6">
-          <FilterBar 
-            filters={filters} 
-            onFilterChange={handleFilterChange} 
-            onClearFilters={handleClearFilters}
-          />
-          
-          <ExpenseTable 
-            data={data?.data || []}
-            meta={data?.meta}
-            isLoading={isLoading}
-            onEdit={handleOpenModal}
-            onPageChange={(page) => handleFilterChange('page', page)}
-          />
-        </div>
+        {activeTab === 'REALIZED' ? (
+          <>
+            {/* Etapa Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+              <button
+                onClick={() => handleFilterChange('etapa', '')}
+                className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                  !filters.etapa || filters.etapa === ''
+                    ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
+                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                }`}
+              >
+                Todas as Etapas
+              </button>
+              {etapas.map((etapa) => (
+                <button
+                  key={etapa}
+                  onClick={() => handleFilterChange('etapa', etapa)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                    filters.etapa === etapa 
+                      ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                  }`}
+                >
+                  {etapa}
+                </button>
+              ))}
+            </div>
+
+            <MetricsCards 
+              metrics={metrics} 
+              isLoading={isLoadingMetrics} 
+              activeCategory={filters.categoria}
+              onCategoryClick={(cat) => handleFilterChange('categoria', cat)}
+              onClearFilters={handleClearFilters}
+            />
+            
+            <div className="glass rounded-xl p-4 sm:p-6 space-y-6">
+              <FilterBar 
+                filters={filters} 
+                onFilterChange={handleFilterChange} 
+                onClearFilters={handleClearFilters}
+              />
+              
+              <ExpenseTable 
+                data={data?.data || []}
+                meta={data?.meta}
+                isLoading={isLoading}
+                onEdit={handleOpenModal}
+                onPageChange={(page) => handleFilterChange('page', page)}
+              />
+            </div>
+          </>
+        ) : (
+          <PlanningDashboard />
+        )}
       </main>
 
       {isModalOpen && (

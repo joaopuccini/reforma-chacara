@@ -8,6 +8,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { CronModule } from './modules/cron/cron.module';
+import { PlanningModule } from './modules/planning/planning.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CronModule } from './modules/cron/cron.module';
     ExpensesModule,
     TelegramModule,
     CronModule,
+    PlanningModule,
   ],
   controllers: [AppController],
   providers: [AppService],

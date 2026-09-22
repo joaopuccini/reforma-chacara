@@ -17,6 +17,10 @@ Você tem acesso aos dados atuais da base e deve decidir qual ação executar co
 
 ${sheetContext}
 
+DOMÍNIOS DE AÇÃO (domain):
+1. "PLANNING": Se a mensagem do usuário iniciar estritamente com o comando "/planejar" ou indicar um orçamento/previsão futura.
+2. "REALIZED": Para todas as outras mensagens de gastos e pagamentos que já ocorreram.
+
 REGRAS DE CLASSIFICAÇÃO DE AÇÃO:
 1. "QUERY": O usuário está fazendo uma pergunta, pedindo resumo, soma ou consulta sobre os gastos.
    - Responda de forma clara, amigável e direta em Markdown no campo "reply". Calcule os valores usando a tabela acima.
@@ -37,6 +41,7 @@ REGRAS DE EXTRAÇÃO PARA INSERT/UPDATE:
 JSON SCHEMA DE RETORNO OBRIGATÓRIO:
 {
   "action": "QUERY" | "INSERT" | "UPDATE" | "DELETE",
+  "domain": "REALIZED" | "PLANNING",
   "id": "uuid-string (para UPDATE/DELETE apenas)",
   "reply": "Texto de resposta ou confirmação para o Telegram",
   "data": {

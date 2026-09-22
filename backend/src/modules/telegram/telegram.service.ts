@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExpensesService } from '../expenses/expenses.service';
+import { PlanningService } from '../planning/planning.service';
+import { SupabaseService } from '../database/supabase.service';
 import { GeminiParserService } from './services/gemini-parser.service';
 import { TelegramUpdateDto } from './dto/telegram-update.dto';
 import axios from 'axios';
@@ -13,12 +15,34 @@ export class TelegramService {
   constructor(
     private configService: ConfigService,
     private expensesService: ExpensesService,
+    private planningService: PlanningService,
+    private supabaseService: SupabaseService,
     private geminiParser: GeminiParserService,
   ) {
     this.botToken = this.configService.get<string>('telegram.botToken') as string;
   }
 
   async handleWebhook(update: TelegramUpdateDto) {
+    const updateId = update.update_id;
+
+    // Idempotency check: prevent processing duplicate webhook retries from Telegram
+    if (updateId) {
+      try {
+        const client = this.supabaseService.getClient();
+        const { error } = await client.from('telegram_updates').insert([{ update_id: updateId }]);
+        if (error) {
+          if (error.code === '23505') { // Unique violation
+            this.logger.warn(`Idempotency: ignorando update duplicado ${updateId}`);
+            return;
+          } else {
+            this.logger.error(`Idempotency table error (pode estar faltando a tabela): ${error.message}`);
+          }
+        }
+      } catch (err: any) {
+        this.logger.error(`Erro ao verificar idempotência: ${err.message}`);
+      }
+    }
+
     if (!update.message) return;
     
     const msg = update.message;
@@ -27,10 +51,11 @@ export class TelegramService {
     if (msg.text && (msg.text === '/start' || msg.text.toLowerCase() === 'ajuda')) {
       const helpMsg = "🏡 *Assistente Financeiro da Chácara*\n\n" +
         "Você pode interagir por texto ou áudio livremente:\n\n" +
-        "➕ *Cadastrar:* `Comprei 5 sacos de areia por 80 reais pago pelo Joao` (ou envie áudio/foto)\n" +
-        "📊 *Consultar:* `Quanto já gastamos até agora?`, `Quanto o Fofo pagou?`, `Quais gastos estão pendentes?`\n" +
-        "✏️ *Editar:* `Altera o valor das latas de tinta para 180 reais pago 50/50`\n" +
-        "🗑️ *Excluir:* `Exclui o último gasto` ou `Apaga a linha do cimento`";
+        "➕ *Cadastrar (Realizado):* `Comprei 5 sacos de areia...`\n" +
+        "🔮 *Planejar (Orçamento):* `/planejar Orçamento de tinta 500 reais`\n" +
+        "📊 *Consultar:* `Quanto já gastamos até agora?`\n" +
+        "✏️ *Editar:* `Altera o valor das latas...`\n" +
+        "🗑️ *Excluir:* `Exclui o último gasto`";
       await this.sendMessage(chatId, helpMsg);
       return;
     }
@@ -47,7 +72,6 @@ export class TelegramService {
       });
 
       let geminiParts = [];
-
       let photoBase64: string | null = null;
 
       if (msg.voice || msg.audio) {
@@ -82,6 +106,14 @@ export class TelegramService {
 
       const decision = await this.geminiParser.parse(geminiParts, sheetContext);
 
+      // Routing baseado no domínio
+      if (decision.domain === 'PLANNING') {
+        const response = await this.planningService.processTelegramCommand(decision);
+        await this.sendMessage(chatId, decision.reply || `🔮 *${response.message}*`);
+        return;
+      }
+
+      // Lógica existente de Despesas (REALIZED)
       let uploadedUrl: string | undefined;
       if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && photoBase64) {
         try {
