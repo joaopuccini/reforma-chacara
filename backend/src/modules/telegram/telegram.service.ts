@@ -146,14 +146,14 @@ export class TelegramService {
       }
 
       if (decision.action === 'INSERT') {
-        const d = decision.data;
+        const d = decision.data || {};
         await this.expensesService.create({
-          descricao: d.descricao,
+          descricao: d.descricao || 'Despesa identificada por IA',
           categoria: d.categoria || 'Material para a Casa',
           subcategoria: d.subcategoria || 'Geral',
-          valor_bruto: Number(d.valor_bruto || d.valor_final),
+          valor_bruto: Number(d.valor_bruto || d.valor_final || 0),
           desconto: Number(d.desconto || 0),
-          valor_final: Number(d.valor_final),
+          valor_final: Number(d.valor_final || 0),
           origem_pagamento: d.origem_pagamento || 'PIX',
           responsavel: d.responsavel || 'João',
           parcelas_total: Number(d.parcelas_total || 1),

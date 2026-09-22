@@ -10,8 +10,7 @@ export class ApiKeyGuard implements CanActivate {
     const token = request.headers['x-telegram-bot-api-secret-token'];
     
     if (!token) {
-      // Allow if not testing webhook specifically, or handle differently based on route
-      return true;
+      throw new UnauthorizedException('Missing Telegram Webhook Secret Token');
     }
 
     const secret = this.configService.get<string>('telegram.webhookSecret');
