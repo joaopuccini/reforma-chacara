@@ -35,4 +35,14 @@ export class PlanningController {
   createPlanningCost(@Body() dto: CreatePlanningCostDto) {
     return this.planningService.createPlanningCost(dto);
   }
+
+  @Post('floorplan/save')
+  saveFloorplan(@Body() data: any) {
+    return this.planningService.saveFloorplan(data);
+  }
+
+  @Get('floorplan/versions')
+  getFloorplanVersions() {
+    return this.planningService.getFloorplanVersions();
+  }
 }

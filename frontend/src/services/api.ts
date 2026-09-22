@@ -46,6 +46,14 @@ export const planningApi = {
   getPlanningCosts: async () => {
     const response = await api.get('/planning/costs');
     return response.data;
+  },
+  saveFloorPlan: async (plan: any) => {
+    const response = await api.post('/planning/floorplan/save', plan);
+    return response.data;
+  },
+  getFloorPlanVersions: async () => {
+    const response = await api.get('/planning/floorplan/versions');
+    return response.data;
   }
 };
 

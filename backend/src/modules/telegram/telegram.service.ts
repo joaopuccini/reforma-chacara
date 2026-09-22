@@ -215,6 +215,6 @@ export class TelegramService {
     const downloadUrl = `https://api.telegram.org/file/bot${this.botToken}/${filePath}`;
     const downloadRes = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
     
-    return Buffer.from(downloadRes.data, 'binary').toString('base64');
+    return Buffer.from(downloadRes.data).toString('base64');
   }
 }

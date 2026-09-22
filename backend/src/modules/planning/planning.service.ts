@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../database/supabase.service';
 import { CreateWorkStageDto, CreateExecutionScheduleDto, CreatePlanningCostDto } from './dto/create-planning.dto';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class PlanningService {
@@ -70,5 +72,55 @@ export class PlanningService {
     }
 
     return { status: 'success', message: 'Comando de planejamento processado.' };
+  }
+
+  // --- Floorplan Persistence (Local Mock) ---
+  getFloorplanVersions() {
+    try {
+      const publicDir = path.resolve(process.cwd(), '../frontend/public');
+      if (!fs.existsSync(publicDir)) return [];
+      
+      const files = fs.readdirSync(publicDir);
+      const versions = files.filter(f => f.startsWith('planta') && f.endsWith('.json'));
+      // Sort so 'planta.json' is first, then 'planta_v1.json', 'planta_v2.json' etc.
+      versions.sort((a, b) => {
+        if (a === 'planta.json') return -1;
+        if (b === 'planta.json') return 1;
+        const numA = parseInt(a.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.replace(/\D/g, '')) || 0;
+        return numA - numB;
+      });
+      return versions;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  saveFloorplan(data: any) {
+    try {
+      const publicDir = path.resolve(process.cwd(), '../frontend/public');
+      const versions = this.getFloorplanVersions();
+      
+      let nextVersion = 1;
+      if (versions.length > 0) {
+        const lastVersion = versions[versions.length - 1];
+        if (lastVersion !== 'planta.json') {
+          const match = lastVersion.match(/planta_v(\d+)\.json/);
+          if (match) {
+            nextVersion = parseInt(match[1]) + 1;
+          }
+        }
+      }
+
+      const fileName = `planta_v${nextVersion}.json`;
+      const filePath = path.join(publicDir, fileName);
+      
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+      return { status: 'success', message: `Planta salva como ${fileName}`, version: fileName };
+    } catch (error) {
+      console.error('Error saving floorplan:', error);
+      throw new Error('Falha ao salvar planta no disco.');
+    }
   }
 }
