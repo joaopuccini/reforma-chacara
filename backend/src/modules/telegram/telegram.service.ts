@@ -105,6 +105,10 @@ export class TelegramService {
 
       let geminiParts = [];
 
+      if (text) {
+        geminiParts.push({ text: `Mensagem do usuário: "${text}"` });
+      }
+      
       if (mediaData) {
         geminiParts.push({
           inlineData: {
@@ -113,9 +117,9 @@ export class TelegramService {
           }
         });
         if (extraInstruction) geminiParts.push({ text: extraInstruction });
-      } else if (text) {
-        geminiParts.push({ text: `Mensagem do usuário: "${text}"` });
-      } else {
+      }
+      
+      if (geminiParts.length === 0) {
         return "⚠️ Não consegui entender o comando fornecido.";
       }
 
