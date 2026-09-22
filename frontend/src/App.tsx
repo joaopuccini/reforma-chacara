@@ -60,28 +60,46 @@ function App() {
       <Navbar onNewExpense={() => handleOpenModal()} />
       
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
-        {/* Main Tabs */}
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            onClick={() => setActiveTab('REALIZED')}
-            className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'REALIZED'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            📊 Realizado (Consolidado)
-          </button>
-          <button
-            onClick={() => setActiveTab('PLANNING')}
-            className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'PLANNING'
-                ? 'border-violet-500 text-violet-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            🔮 Planejamento & Prazos
-          </button>
+        {/* Main Tabs (Glassmorphism Pilled) */}
+        <div className="flex justify-center mb-8">
+          <div className="glass inline-flex items-center p-1.5 rounded-full">
+            <button
+              onClick={() => setActiveTab('REALIZED')}
+              className={`relative px-6 py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
+                activeTab === 'REALIZED'
+                  ? 'text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {activeTab === 'REALIZED' && (
+                <div className="absolute inset-0 bg-primary/80 border border-primary/20 backdrop-blur-md rounded-full -z-10 animate-in zoom-in-95 duration-200"></div>
+              )}
+              <span className="flex items-center gap-2 relative z-10">
+                <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Realizado (Caixa)
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('PLANNING')}
+              className={`relative px-6 py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
+                activeTab === 'PLANNING'
+                  ? 'text-violet-50 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {activeTab === 'PLANNING' && (
+                <div className="absolute inset-0 bg-violet-600/80 border border-violet-500/30 backdrop-blur-md rounded-full -z-10 animate-in zoom-in-95 duration-200"></div>
+              )}
+              <span className="flex items-center gap-2 relative z-10">
+                <svg className="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+                Planejamento & Orçamento
+              </span>
+            </button>
+          </div>
         </div>
 
         {activeTab === 'REALIZED' ? (
