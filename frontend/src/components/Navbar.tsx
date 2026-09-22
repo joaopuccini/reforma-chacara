@@ -1,10 +1,6 @@
-import { Plus, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 
-interface NavbarProps {
-  onNewExpense: () => void;
-}
-
-export default function Navbar({ onNewExpense }: NavbarProps) {
+export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
@@ -20,14 +16,6 @@ export default function Navbar({ onNewExpense }: NavbarProps) {
             </span>
           </div>
         </div>
-        
-        <button 
-          onClick={onNewExpense}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Despesa
-        </button>
       </div>
     </header>
   );

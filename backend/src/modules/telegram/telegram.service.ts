@@ -63,6 +63,38 @@ export class TelegramService {
     try {
       await this.sendMessage(chatId, "⏳ *Processando com IA...*");
 
+      let text = msg.text;
+      let mediaData: { mimeType: string, base64: string } | undefined;
+      let extraInstruction: string | undefined;
+
+      if (msg.voice || msg.audio) {
+        const media = msg.voice || msg.audio;
+        if (media) {
+          const fileBase64 = await this.downloadTelegramBlob(media.file_id);
+          mediaData = { mimeType: media.mime_type || "audio/ogg", base64: fileBase64 };
+          extraInstruction = "Analise o comando de áudio do usuário e execute a ação correta.";
+        }
+      } else if (msg.photo) {
+        const fileId = msg.photo[msg.photo.length - 1].file_id;
+        const fileBase64 = await this.downloadTelegramBlob(fileId);
+        mediaData = { mimeType: "image/jpeg", base64: fileBase64 };
+        const legenda = msg.caption ? ` Legenda informada: "${msg.caption}"` : "";
+        extraInstruction = "Analise esta foto de nota/recibo para cadastrar como novo gasto ou atualizar um existente." + legenda;
+      } else if (!msg.text) {
+        await this.sendMessage(chatId, "⚠️ Formato não reconhecido. Envie texto, foto ou áudio.");
+        return;
+      }
+
+      const reply = await this.processCommand(text, mediaData, extraInstruction);
+      await this.sendMessage(chatId, reply);
+    } catch (err: any) {
+      this.logger.error(`Erro ao processar webhook: ${err.message}`);
+      await this.sendMessage(chatId, "❌ Erro ao processar: " + err.message);
+    }
+  }
+
+  async processCommand(text?: string, mediaData?: { mimeType: string, base64: string }, extraInstruction?: string): Promise<string> {
+    try {
       // Obter as despesas recentes para contexto
       const { data: recentExpenses } = await this.expensesService.findAll({ limit: 15 });
       let sheetContext = "DADOS ATUAIS DA BASE (ID | Descrição | Categoria | Valor Parcela | Status | Origem | Resp. | Parcela | Vencimento):\n";
@@ -72,36 +104,19 @@ export class TelegramService {
       });
 
       let geminiParts = [];
-      let photoBase64: string | null = null;
 
-      if (msg.voice || msg.audio) {
-        const media = msg.voice || msg.audio;
-        if (!media) return;
-        const fileId = media.file_id;
-        const fileBase64 = await this.downloadTelegramBlob(fileId);
+      if (mediaData) {
         geminiParts.push({
           inlineData: {
-            mimeType: media.mime_type || "audio/ogg",
-            data: fileBase64
+            mimeType: mediaData.mimeType,
+            data: mediaData.base64
           }
         });
-        geminiParts.push({ text: "Analise o comando de áudio do usuário e execute a ação correta." });
-      } else if (msg.photo) {
-        const fileId = msg.photo[msg.photo.length - 1].file_id;
-        photoBase64 = await this.downloadTelegramBlob(fileId);
-        geminiParts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: photoBase64
-          }
-        });
-        const legenda = msg.caption ? ` Legenda informada: "${msg.caption}"` : "";
-        geminiParts.push({ text: "Analise esta foto de nota/recibo para cadastrar como novo gasto ou atualizar um existente." + legenda });
-      } else if (msg.text) {
-        geminiParts.push({ text: `Mensagem do usuário: "${msg.text}"` });
+        if (extraInstruction) geminiParts.push({ text: extraInstruction });
+      } else if (text) {
+        geminiParts.push({ text: `Mensagem do usuário: "${text}"` });
       } else {
-        await this.sendMessage(chatId, "⚠️ Formato não reconhecido. Envie texto, foto ou áudio.");
-        return;
+        return "⚠️ Não consegui entender o comando fornecido.";
       }
 
       const decision = await this.geminiParser.parse(geminiParts, sheetContext);
@@ -109,16 +124,16 @@ export class TelegramService {
       // Routing baseado no domínio
       if (decision.domain === 'PLANNING') {
         const response = await this.planningService.processTelegramCommand(decision);
-        await this.sendMessage(chatId, decision.reply || `🔮 *${response.message}*`);
-        return;
+        return decision.reply || `🔮 *${response.message}*`;
       }
 
       // Lógica existente de Despesas (REALIZED)
       let uploadedUrl: string | undefined;
-      if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && photoBase64) {
+      const isJpeg = mediaData && mediaData.mimeType === 'image/jpeg';
+      if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && isJpeg) {
         try {
-          const buffer = Buffer.from(photoBase64, 'base64');
-          const fileName = `telegram-${Date.now()}.jpg`;
+          const buffer = Buffer.from(mediaData.base64, 'base64');
+          const fileName = `receipt-${Date.now()}.jpg`;
           uploadedUrl = await this.expensesService.uploadBuffer(fileName, buffer, 'image/jpeg');
         } catch (e: any) {
           this.logger.error("Erro ao subir imagem pro supabase: " + e.message);
@@ -138,17 +153,17 @@ export class TelegramService {
           responsavel: d.responsavel || 'João',
           parcelas_total: Number(d.parcelas_total || 1),
           link_comprovante: d.link_comprovante || '—',
-          observacoes: d.observacoes || 'Telegram IA',
+          observacoes: d.observacoes || 'IA Assistant',
           ...(uploadedUrl ? { comprovante_url: uploadedUrl } : {})
         });
-        await this.sendMessage(chatId, decision.reply || "✅ *Gasto registrado com sucesso!*");
+        return decision.reply || "✅ *Gasto registrado com sucesso!*";
 
       } else if (decision.action === 'DELETE') {
         if (decision.id) {
           await this.expensesService.remove(decision.id);
-          await this.sendMessage(chatId, decision.reply || `🗑️ *Item excluído com sucesso!*`);
+          return decision.reply || `🗑️ *Item excluído com sucesso!*`;
         } else {
-          await this.sendMessage(chatId, "⚠️ Não encontrei o ID indicado para exclusão.");
+          return "⚠️ Não encontrei o ID indicado para exclusão.";
         }
 
       } else if (decision.action === 'UPDATE') {
@@ -156,20 +171,22 @@ export class TelegramService {
           const d = decision.data || {};
           await this.expensesService.update(decision.id, {
             ...d,
-            observacoes: d.observacoes || 'Atualizado via Telegram',
+            observacoes: d.observacoes || 'Atualizado via IA',
             ...(uploadedUrl ? { comprovante_url: uploadedUrl } : {})
           });
-          await this.sendMessage(chatId, decision.reply || `✏️ *Item atualizado com sucesso!*`);
+          return decision.reply || `✏️ *Item atualizado com sucesso!*`;
         } else {
-          await this.sendMessage(chatId, "⚠️ Não encontrei o item para atualizar.");
+          return "⚠️ Não encontrei o item para atualizar.";
         }
 
       } else if (decision.action === 'QUERY') {
-        await this.sendMessage(chatId, decision.reply);
+        return decision.reply || "Busca finalizada.";
       }
+      
+      return "⚠️ Nenhuma ação reconhecida pela IA.";
     } catch (err: any) {
-      this.logger.error(`Erro ao processar: ${err.message}`);
-      await this.sendMessage(chatId, "❌ Erro ao processar: " + err.message);
+      this.logger.error(`Erro no processCommand: ${err.message}`);
+      return "❌ Erro ao processar: " + err.message;
     }
   }
 

@@ -21,7 +21,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
   ];
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="glass flex flex-col gap-4 w-full p-4 rounded-xl border border-border/50">
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between w-full">
         <div className="relative w-full sm:w-72">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -29,7 +29,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
           </div>
           <input
             type="text"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9"
+            className="flex h-10 w-full rounded-lg border border-border/50 bg-background/30 px-3 py-1 text-sm shadow-inner transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary pl-9 backdrop-blur-sm"
             placeholder="Buscar despesa..."
             value={filters.search}
             onChange={(e) => onFilterChange('search', e.target.value)}
@@ -38,7 +38,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-1 sm:justify-end">
           <select
-            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
+            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-lg border border-border/50 bg-background/30 px-3 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-primary flex-1 sm:flex-none backdrop-blur-sm cursor-pointer hover:bg-background/50 transition-colors"
             value={filters.categoria}
             onChange={(e) => onFilterChange('categoria', e.target.value)}
           >
@@ -47,7 +47,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
+            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-lg border border-border/50 bg-background/30 px-3 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-primary flex-1 sm:flex-none backdrop-blur-sm cursor-pointer hover:bg-background/50 transition-colors"
             value={filters.origem_pagamento}
             onChange={(e) => onFilterChange('origem_pagamento', e.target.value)}
           >
@@ -59,7 +59,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
+            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-lg border border-border/50 bg-background/30 px-3 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-primary flex-1 sm:flex-none backdrop-blur-sm cursor-pointer hover:bg-background/50 transition-colors"
             value={filters.responsavel}
             onChange={(e) => onFilterChange('responsavel', e.target.value)}
           >
@@ -69,7 +69,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
           </select>
 
           <select
-            className="flex h-9 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none"
+            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-lg border border-border/50 bg-background/30 px-3 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-primary flex-1 sm:flex-none backdrop-blur-sm cursor-pointer hover:bg-background/50 transition-colors"
             value={filters.status}
             onChange={(e) => onFilterChange('status', e.target.value)}
           >
@@ -81,7 +81,7 @@ export default function FilterBar({ filters, onFilterChange, onClearFilters }: F
           {(filters.categoria || filters.status || filters.origem_pagamento || filters.responsavel || filters.search) && (
             <button
               onClick={onClearFilters}
-              className="h-9 px-3 w-full sm:w-auto rounded-md border border-input bg-muted/50 hover:bg-muted text-sm transition-colors whitespace-nowrap"
+              className="h-10 px-4 w-full sm:w-auto rounded-lg border border-border/50 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center"
               title="Limpar todos os filtros"
             >
               Limpar Filtros

@@ -14,4 +14,13 @@ export class TelegramController {
     this.telegramService.handleWebhook(update);
     return { status: 'OK' };
   }
+
+  @Post('web-chat')
+  async handleWebChat(@Body() body: { text: string }) {
+    if (!body.text) {
+      return { reply: "Por favor, envie um texto." };
+    }
+    const reply = await this.telegramService.processCommand(body.text);
+    return { reply };
+  }
 }

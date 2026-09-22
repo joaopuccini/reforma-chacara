@@ -1,21 +1,19 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import MetricsCards from './components/MetricsCards';
 import FilterBar from './components/FilterBar';
 import ExpenseTable from './components/ExpenseTable';
-import ExpenseFormModal from './components/ExpenseFormModal';
+import { AiAssistant } from './components/AiAssistant';
 import { PlanningDashboard } from './components/PlanningDashboard';
 import { useExpenses } from './hooks/useExpenses';
 import { useMetrics, useEtapas } from './hooks/useMetrics';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'REALIZED' | 'PLANNING'>('REALIZED');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 20,
+    limit: 50,
     categoria: '',
     status: '',
     origem_pagamento: '',
@@ -24,42 +22,66 @@ function App() {
     etapa: ''
   });
 
-  const { data, isLoading } = useExpenses(filters);
+  const { data, isLoading, refetch } = useExpenses(filters);
   const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa);
   const { data: etapas = ['Laje'] } = useEtapas();
 
-  const handleOpenModal = (id?: string) => {
-    setEditingExpenseId(id || null);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingExpenseId(null);
+  const handleEdit = (id: string) => {
+    // If they click edit, we could handle via AiAssistant later
+    console.log('Edit clicked for', id);
   };
 
   const handleFilterChange = (key: string, value: string | number) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: key === 'page' ? value as number : 1 }));
+    setFilters(prev => ({
+      ...prev,
+      [key]: value,
+      page: key === 'page' ? value as number : 1
+    }));
   };
 
   const handleClearFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 20,
+    setFilters(prev => ({
+      ...prev,
       categoria: '',
       status: '',
       origem_pagamento: '',
       responsavel: '',
       search: '',
-      etapa: ''
-    });
+      page: 1
+    }));
+  };
+
+  const handleEtapaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'TODAS_AS_ETAPAS') {
+      setFilters(prev => ({ ...prev, etapa: '' }));
+    } else {
+      setFilters(prev => ({ ...prev, etapa: value }));
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Navbar onNewExpense={() => handleOpenModal()} />
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <Navbar />
       
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl space-y-8">
+        {/* Etapa Selector (Global) */}
+        <div className="flex justify-center -mt-2 mb-4 relative z-20">
+          <div className="inline-flex items-center gap-2 bg-muted/40 backdrop-blur-md border border-border/50 px-3 py-1.5 rounded-full shadow-sm">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Etapa Ativa:</span>
+            <select 
+              value={filters.etapa || 'TODAS_AS_ETAPAS'}
+              onChange={handleEtapaChange}
+              className="bg-transparent text-sm font-bold text-foreground border-0 outline-none cursor-pointer hover:text-primary transition-colors focus:ring-0 pl-1 pr-6"
+            >
+              <option value="TODAS_AS_ETAPAS">Todas as Etapas</option>
+              {etapas.map((etapa: string) => (
+                <option key={etapa} value={etapa}>{etapa}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Main Tabs (Glassmorphism Pilled) */}
         <div className="flex justify-center mb-8">
           <div className="glass inline-flex items-center p-1.5 rounded-full">
@@ -103,69 +125,35 @@ function App() {
         </div>
 
         {activeTab === 'REALIZED' ? (
-          <>
-            {/* Etapa Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-              <button
-                onClick={() => handleFilterChange('etapa', '')}
-                className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                  !filters.etapa || filters.etapa === ''
-                    ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
-                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                }`}
-              >
-                Todas as Etapas
-              </button>
-              {etapas.map((etapa) => (
-                <button
-                  key={etapa}
-                  onClick={() => handleFilterChange('etapa', etapa)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                    filters.etapa === etapa 
-                      ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' 
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                  }`}
-                >
-                  {etapa}
-                </button>
-              ))}
-            </div>
-
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <MetricsCards 
               metrics={metrics} 
-              isLoading={isLoadingMetrics} 
+              isLoading={isLoadingMetrics}
               activeCategory={filters.categoria}
               onCategoryClick={(cat) => handleFilterChange('categoria', cat)}
               onClearFilters={handleClearFilters}
             />
-            
-            <div className="glass rounded-xl p-4 sm:p-6 space-y-6">
-              <FilterBar 
-                filters={filters} 
-                onFilterChange={handleFilterChange} 
-                onClearFilters={handleClearFilters}
-              />
-              
-              <ExpenseTable 
-                data={data?.data || []}
-                meta={data?.meta}
-                isLoading={isLoading}
-                onEdit={handleOpenModal}
-                onPageChange={(page) => handleFilterChange('page', page)}
-              />
-            </div>
-          </>
+
+            <FilterBar 
+              filters={filters} 
+              onFilterChange={handleFilterChange} 
+              onClearFilters={handleClearFilters}
+            />
+
+            <ExpenseTable 
+              data={data?.data || []}
+              meta={data?.meta}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onPageChange={(page) => handleFilterChange('page', page)}
+            />
+          </div>
         ) : (
           <PlanningDashboard />
         )}
       </main>
 
-      {isModalOpen && (
-        <ExpenseFormModal 
-          expenseId={editingExpenseId}
-          onClose={handleCloseModal}
-        />
-      )}
+      <AiAssistant onActionComplete={() => refetch()} />
     </div>
   );
 }

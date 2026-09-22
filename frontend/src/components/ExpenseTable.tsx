@@ -304,25 +304,25 @@ export default function ExpenseTable({ data, meta, isLoading, onEdit, onPageChan
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-border overflow-hidden">
+      <div className="glass rounded-xl border border-border/50 overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/50 border-b border-border">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead className="text-xs text-muted-foreground uppercase tracking-wider bg-muted/20 border-b border-border/50 backdrop-blur-sm">
               <tr>
-                <th className="w-8 px-2 py-3"></th>
-                <th className="px-4 py-3 font-medium">Descrição</th>
-                <th className="px-4 py-3 font-medium">Categoria</th>
-                <th className="px-4 py-3 font-medium">Etapa</th>
-                <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Parcela (R$)</th>
-                <th className="px-4 py-3 font-medium">Origem</th>
-                <th className="px-4 py-3 font-medium">Resp.</th>
-                <th className="px-4 py-3 font-medium">Venc.</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium text-right">Ações</th>
+                <th className="w-8 px-4 py-4"></th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Descrição</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Categoria</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Etapa</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Total</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Parcela (R$)</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Origem</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Resp.</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Venc.</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80">Status</th>
+                <th className="px-4 py-4 font-semibold text-foreground/80 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/30">
               {groupedData.map((group) => {
                 if (!group.isGroup) {
                   const expense = group.items[0];

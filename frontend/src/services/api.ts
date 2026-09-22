@@ -49,4 +49,11 @@ export const planningApi = {
   }
 };
 
+export const chatApi = {
+  sendMessage: async (text: string) => {
+    const response = await api.post('/telegram/web-chat', { text });
+    return response.data;
+  }
+};
+
 export default api;
