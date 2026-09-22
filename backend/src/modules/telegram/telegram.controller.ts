@@ -16,11 +16,12 @@ export class TelegramController {
   }
 
   @Post('web-chat')
-  async handleWebChat(@Body() body: { text: string }) {
-    if (!body.text) {
-      return { reply: "Por favor, envie um texto." };
+  async handleWebChat(@Body() body: { text?: string; mediaData?: { mimeType: string; base64: string } }) {
+    if (!body.text && !body.mediaData) {
+      return { reply: "Por favor, envie um texto ou uma imagem." };
     }
-    const reply = await this.telegramService.processCommand(body.text);
+    const extraInstruction = body.mediaData ? (body.text ? undefined : "Analise esta foto de nota/recibo para cadastrar como novo gasto ou atualizar um existente.") : undefined;
+    const reply = await this.telegramService.processCommand(body.text, body.mediaData, extraInstruction);
     return { reply };
   }
 }

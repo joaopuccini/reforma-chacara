@@ -50,8 +50,8 @@ export const planningApi = {
 };
 
 export const chatApi = {
-  sendMessage: async (text: string) => {
-    const response = await api.post('/telegram/web-chat', { text });
+  sendMessage: async (text: string, mediaData?: { mimeType: string; base64: string }) => {
+    const response = await api.post('/telegram/web-chat', { text, mediaData });
     return response.data;
   }
 };

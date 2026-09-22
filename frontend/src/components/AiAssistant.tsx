@@ -1,21 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { chatApi } from '../services/api';
 import ReactMarkdown from 'react-markdown';
+import { Paperclip, X } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  mediaUrl?: string;
 }
 
 export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onActionComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', content: 'Olá! Sou o Assistente da Chácara. Digite os gastos que você quer cadastrar ou planejar.' }
+    { id: '1', role: 'assistant', content: 'Olá! Sou o Assistente da Chácara. Digite os gastos que você quer cadastrar, mande uma foto da nota, ou planeje algo.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -23,19 +28,66 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
     }
   }, [messages]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const toBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !selectedFile) || isLoading) return;
 
     const userText = input.trim();
-    setInput('');
+    const fileToUpload = selectedFile;
+    const fileUrl = previewUrl;
     
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: userText };
+    setInput('');
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    
+    const userMsg: Message = { 
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: userText || '🖼️ [Imagem enviada]',
+      mediaUrl: fileUrl || undefined
+    };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      const res = await chatApi.sendMessage(userText);
+      let mediaData = undefined;
+      if (fileToUpload) {
+        const base64 = await toBase64(fileToUpload);
+        mediaData = {
+          mimeType: fileToUpload.type,
+          base64: base64
+        };
+      }
+
+      const res = await chatApi.sendMessage(userText, mediaData);
       const botMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply || 'Processado.' };
       setMessages(prev => [...prev, botMsg]);
       if (onActionComplete) onActionComplete();
@@ -85,7 +137,7 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 relative">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
@@ -93,6 +145,9 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
                     ? 'bg-primary text-primary-foreground rounded-tr-sm' 
                     : 'glass-card border border-border/50 rounded-tl-sm prose prose-sm dark:prose-invert'
                 }`}>
+                  {msg.mediaUrl && (
+                    <img src={msg.mediaUrl} alt="Anexo" className="w-full max-h-48 object-cover rounded-md mb-2" />
+                  )}
                   {msg.role === 'user' ? (
                     msg.content
                   ) : (
@@ -115,9 +170,39 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Preview Area */}
+          {previewUrl && (
+            <div className="px-3 pt-2 bg-background border-t border-border flex items-center">
+              <div className="relative inline-block">
+                <img src={previewUrl} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-border" />
+                <button 
+                  onClick={removeFile}
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90 shadow-sm"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="p-3 bg-background border-t border-border">
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
+                title="Anexar imagem (nota, recibo)"
+              >
+                <Paperclip size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+                accept="image/*" 
+                className="hidden" 
+              />
               <input
                 type="text"
                 value={input}
@@ -128,8 +213,8 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
               />
               <button
                 type="submit"
-                disabled={!input.trim() || isLoading}
-                className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={(!input.trim() && !selectedFile) || isLoading}
+                className="w-10 h-10 shrink-0 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4 translate-x-[1px] translate-y-[-1px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

@@ -129,12 +129,13 @@ export class TelegramService {
 
       // Lógica existente de Despesas (REALIZED)
       let uploadedUrl: string | undefined;
-      const isJpeg = mediaData && mediaData.mimeType === 'image/jpeg';
-      if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && isJpeg) {
+      const isImage = mediaData && mediaData.mimeType.startsWith('image/');
+      if ((decision.action === 'INSERT' || decision.action === 'UPDATE') && isImage) {
         try {
           const buffer = Buffer.from(mediaData.base64, 'base64');
-          const fileName = `receipt-${Date.now()}.jpg`;
-          uploadedUrl = await this.expensesService.uploadBuffer(fileName, buffer, 'image/jpeg');
+          const ext = mediaData.mimeType.split('/')[1] || 'jpg';
+          const fileName = `receipt-${Date.now()}.${ext}`;
+          uploadedUrl = await this.expensesService.uploadBuffer(fileName, buffer, mediaData.mimeType);
         } catch (e: any) {
           this.logger.error("Erro ao subir imagem pro supabase: " + e.message);
         }
