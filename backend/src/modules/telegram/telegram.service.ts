@@ -22,6 +22,24 @@ export class TelegramService {
     this.botToken = this.configService.get<string>('telegram.botToken') as string;
   }
 
+  async registerWebhook(baseUrl: string) {
+    const secretToken = this.configService.get<string>('telegram.webhookSecret');
+    const webhookUrl = `${baseUrl.replace(/\/$/, '')}/api/v1/telegram/webhook`;
+    
+    try {
+      const response = await axios.post(`https://api.telegram.org/bot${this.botToken}/setWebhook`, {
+        url: webhookUrl,
+        secret_token: secretToken
+      });
+      
+      this.logger.log(`Webhook registrado com sucesso: ${webhookUrl}`);
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Erro ao registrar webhook: ${error.message}`);
+      throw error;
+    }
+  }
+
   async handleWebhook(update: TelegramUpdateDto) {
     const updateId = update.update_id;
 
