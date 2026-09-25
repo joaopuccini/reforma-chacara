@@ -13,12 +13,18 @@ import { DatabaseModule } from '../database/database.module';
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('auth.jwtSecret'),
-        signOptions: {
-          expiresIn: (configService.get<string>('auth.jwtExpiration') || '7d') as any,
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('auth.jwtSecret') || process.env.JWT_SECRET;
+        if (!secret) {
+          throw new Error('JWT_SECRET nao configurado! Defina a variavel de ambiente JWT_SECRET.');
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: (configService.get<string>('auth.jwtExpiration') || process.env.JWT_EXPIRATION || '7d') as any,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],
