@@ -18,7 +18,9 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
-    forbidNonWhitelisted: true,
+    // IMPORTANTE: forbidNonWhitelisted removido propositalmente.
+    // O Telegram envia campos extras no webhook que nao estao no DTO,
+    // causando erro 400 silencioso e o bot parando de responder.
   }));
   
   app.useGlobalFilters(new HttpExceptionFilter());
