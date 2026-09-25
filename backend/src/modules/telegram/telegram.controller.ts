@@ -26,11 +26,9 @@ export class TelegramController {
   }
 
   @Post('setup-webhook')
-  async setupWebhook(@Body() body: { baseUrl: string }) {
-    if (!body.baseUrl) {
-      return { error: 'Por favor, forneça a baseUrl (ex: https://reforma-chacara-api.onrender.com)' };
-    }
-    const result = await this.telegramService.registerWebhook(body.baseUrl);
+  async setupWebhook(@Body() body: { baseUrl?: string }) {
+    const finalBaseUrl = body?.baseUrl || 'https://reforma-chacara-api.onrender.com';
+    const result = await this.telegramService.registerWebhook(finalBaseUrl);
     return result;
   }
 }
