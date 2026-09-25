@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
@@ -10,6 +11,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { CronModule } from './modules/cron/cron.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -31,6 +33,12 @@ import { ThrottlerModule } from '@nestjs/throttler';
     PlanningModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
