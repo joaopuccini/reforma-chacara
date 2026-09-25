@@ -9,6 +9,8 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { CronModule } from './modules/cron/cron.module';
 import { PlanningModule } from './modules/planning/planning.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -17,7 +19,12 @@ import { PlanningModule } from './modules/planning/planning.module';
       load: [configuration],
     }),
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
     DatabaseModule,
+    AuthModule,
     ExpensesModule,
     TelegramModule,
     CronModule,

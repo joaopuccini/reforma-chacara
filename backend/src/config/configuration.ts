@@ -13,4 +13,10 @@ export default () => ({
     apiKey: process.env.GEMINI_API_KEY,
     preferredModels: process.env.GEMINI_PREFERRED_MODELS?.split(',') || ['gemini-2.5-flash'],
   },
+  auth: {
+    jwtSecret: process.env.JWT_SECRET,
+    jwtExpiration: process.env.JWT_EXPIRATION || '7d',
+    adminEmail: process.env.ADMIN_EMAIL,
+    adminPassword: process.env.ADMIN_PASSWORD,
+  }
 });

@@ -2,11 +2,13 @@ import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { TelegramService } from './telegram.service';
 import { TelegramUpdateDto } from './dto/telegram-update.dto';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('api/v1/telegram')
 export class TelegramController {
   constructor(private readonly telegramService: TelegramService) {}
 
+  @Public()
   @Post('webhook')
   @UseGuards(ApiKeyGuard)
   async handleWebhook(@Body() update: TelegramUpdateDto) {
