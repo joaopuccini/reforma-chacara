@@ -20,40 +20,55 @@ export class AuthService implements OnModuleInit {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const client = this.supabaseService.getClient();
-    
-    // Buscar usuário pelo e-mail
-    const { data: user, error } = await client
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
+    try {
+      const client = this.supabaseService.getClient();
+      
+      const { data: user, error } = await client
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
 
-    if (error || !user || !user.is_active) {
-      // Retorna nulo se não achou para dar o throw "Credenciais Inválidas"
+      if (error) {
+        this.logger.error(`Erro ao buscar usuário: ${error.message} (code: ${error.code})`);
+        return null;
+      }
+
+      if (!user || !user.is_active) {
+        return null;
+      }
+
+      const isMatch = await bcrypt.compare(pass, user.password_hash);
+      if (isMatch) {
+        const { password_hash, ...result } = user;
+        return result;
+      }
+      return null;
+    } catch (e: any) {
+      this.logger.error(`Exceção em validateUser: ${e.message}`);
       return null;
     }
-
-    const isMatch = await bcrypt.compare(pass, user.password_hash);
-    if (isMatch) {
-      const { password_hash, ...result } = user;
-      return result;
-    }
-    return null;
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-    
-    if (!user) {
+    try {
+      const user = await this.validateUser(loginDto.email, loginDto.password);
+      
+      if (!user) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+
+      const payload = { email: user.email, sub: user.id, role: user.role };
+      
+      return {
+        access_token: this.jwtService.sign(payload),
+      };
+    } catch (e: any) {
+      // Re-lança exceções HTTP (401, 403) sem transformar em 500
+      if (e?.status) throw e;
+      this.logger.error(`Erro inesperado no login: ${e.message}`);
       throw new UnauthorizedException('Credenciais inválidas');
     }
-
-    const payload = { email: user.email, sub: user.id, role: user.role };
-    
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
   }
 
   private async bootstrapAdmin() {
