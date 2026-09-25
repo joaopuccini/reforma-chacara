@@ -79,13 +79,16 @@ JSON SCHEMA DE RETORNO OBRIGATÓRIO:
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": apiKey
-          }
+          },
+          timeout: 30000 // 30s timeout por modelo
         });
 
         const raw = response.data.candidates[0].content.parts[0].text;
         return JSON.parse(raw);
       } catch (error: any) {
-        this.logger.warn(`Falha ao processar com modelo ${model}: ${error.message}`);
+        const status = error?.response?.status || 'sem_status';
+        const detail = error?.response?.data?.error?.message || error.message;
+        this.logger.warn(`Falha ao processar com modelo ${model} [${status}]: ${detail}`);
         lastError = error;
       }
     }

@@ -335,6 +335,6 @@ export const useFloorPlanStore = create<FloorPlanState>()(
       };
     }
 
-    set({ plan: { points, walls } });
+    set({ plan: { points, walls, rooms: {} } });
   }
 })));

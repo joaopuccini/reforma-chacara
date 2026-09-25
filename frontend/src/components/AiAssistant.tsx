@@ -10,6 +10,35 @@ interface Message {
   mediaUrl?: string;
 }
 
+// Comprime e redimensiona a imagem para no máximo 1200px e qualidade 0.75
+// Isso garante que fotos do iPhone (15MB+) fiquem abaixo de 1MB antes de enviar
+async function compressImage(file: File, maxWidth = 1200, quality = 0.75): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas context error'));
+      ctx.drawImage(img, 0, 0, width, height);
+      const mimeType = 'image/jpeg';
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+      const base64 = dataUrl.split(',')[1];
+      resolve({ base64, mimeType });
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onActionComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -21,12 +50,26 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
+
+  // Scroll input into view when keyboard opens on iOS
+  useEffect(() => {
+    if (isOpen) {
+      const handleResize = () => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isOpen]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -43,18 +86,6 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const toBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!input.trim() && !selectedFile) || isLoading) return;
@@ -62,15 +93,15 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
     const userText = input.trim();
     const fileToUpload = selectedFile;
     const fileUrl = previewUrl;
-    
+
     setInput('');
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-    
-    const userMsg: Message = { 
-      id: Date.now().toString(), 
-      role: 'user', 
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
       content: userText || '🖼️ [Imagem enviada]',
       mediaUrl: fileUrl || undefined
     };
@@ -78,21 +109,28 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
     setIsLoading(true);
 
     try {
-      let mediaData = undefined;
+      let mediaData: { mimeType: string; base64: string } | undefined;
+
       if (fileToUpload) {
-        const base64 = await toBase64(fileToUpload);
-        mediaData = {
-          mimeType: fileToUpload.type,
-          base64: base64
-        };
+        // Comprimir imagem antes de enviar (garante compatibilidade com Gemini e evita 503/413)
+        mediaData = await compressImage(fileToUpload);
       }
 
       const res = await chatApi.sendMessage(userText, mediaData);
-      const botMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply || 'Processado.' };
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: res.reply || 'Processado.'
+      };
       setMessages(prev => [...prev, botMsg]);
       if (onActionComplete) onActionComplete();
     } catch (error: any) {
-      const errorMsg: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: '❌ Erro ao enviar mensagem.' };
+      const detail = error?.response?.data?.message || error?.message || 'Tente novamente.';
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ Erro ao enviar mensagem. Detalhe: ${detail}`
+      };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
@@ -104,7 +142,7 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_0_20px_rgba(30,64,175,0.4)] flex items-center justify-center hover:scale-105 transition-transform z-50 animate-in zoom-in"
+        className="fixed bottom-6 right-4 sm:right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_0_20px_rgba(30,64,175,0.4)] flex items-center justify-center hover:scale-105 transition-transform z-50 animate-in zoom-in"
       >
         {isOpen ? (
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,12 +155,12 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
         )}
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window — full screen on mobile, fixed panel on desktop */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:right-6 sm:w-[380px] h-[550px] max-h-[80vh] bg-background border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
-          
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:h-[580px] sm:max-h-[85vh] bg-background border border-border sm:rounded-2xl shadow-2xl flex flex-col z-50 sm:overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+
           {/* Header */}
-          <div className="glass px-4 py-3 flex items-center justify-between border-b border-border/50">
+          <div className="glass px-4 py-3 flex items-center justify-between border-b border-border/50 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,15 +172,22 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
                 <p className="text-xs text-muted-foreground">Sempre online</p>
               </div>
             </div>
+            {/* Close button always visible on mobile */}
+            <button
+              onClick={() => setIsOpen(false)}
+              className="sm:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <X size={20} />
+            </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 relative">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 overscroll-contain">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                  msg.role === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-tr-sm'
                     : 'glass-card border border-border/50 rounded-tl-sm prose prose-sm dark:prose-invert'
                 }`}>
                   {msg.mediaUrl && (
@@ -172,10 +217,10 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
 
           {/* Preview Area */}
           {previewUrl && (
-            <div className="px-3 pt-2 bg-background border-t border-border flex items-center">
+            <div className="px-3 pt-2 pb-1 bg-background border-t border-border flex items-center shrink-0">
               <div className="relative inline-block">
                 <img src={previewUrl} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-border" />
-                <button 
+                <button
                   onClick={removeFile}
                   className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90 shadow-sm"
                 >
@@ -186,30 +231,33 @@ export const AiAssistant: React.FC<{ onActionComplete?: () => void }> = ({ onAct
           )}
 
           {/* Input Area */}
-          <div className="p-3 bg-background border-t border-border">
+          <div className="p-3 bg-background border-t border-border shrink-0">
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
+                className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors"
                 title="Anexar imagem (nota, recibo)"
               >
                 <Paperclip size={20} />
               </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileSelect} 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*"
+                className="hidden"
               />
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ex: comprei tinta por R$ 300..."
-                className="flex-1 bg-muted/30 border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground transition-all"
+                className="flex-1 bg-muted/30 border border-border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground transition-all"
                 disabled={isLoading}
+                // Prevent iOS zoom on focus (font-size must be >= 16px equivalent)
+                style={{ fontSize: '16px' }}
               />
               <button
                 type="submit"
