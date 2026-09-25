@@ -7,7 +7,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { json, urlencoded } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const configService = app.get(ConfigService);
   
   app.enableCors();
