@@ -1,4 +1,4 @@
-import { Wallet } from 'lucide-react';
+import { Wallet, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -16,6 +16,17 @@ export default function Navbar() {
             </span>
           </div>
         </div>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('token');
+            window.dispatchEvent(new Event('auth:unauthorized'));
+          }}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">Sair</span>
+        </button>
       </div>
     </header>
   );

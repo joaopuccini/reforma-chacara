@@ -7,6 +7,28 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // Apenas forçamos o reload se não estivermos na tela de login
+      if (window.location.pathname !== '/login' && !error.config.url.includes('/auth/login')) {
+        window.dispatchEvent(new Event('auth:unauthorized'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const expensesApi = {
   getExpenses: async (params?: any) => {
     const response = await api.get('/expenses', { params });
@@ -60,6 +82,13 @@ export const planningApi = {
 export const chatApi = {
   sendMessage: async (text: string, mediaData?: { mimeType: string; base64: string }) => {
     const response = await api.post('/telegram/web-chat', { text, mediaData });
+    return response.data;
+  }
+};
+
+export const authApi = {
+  login: async (credentials: any) => {
+    const response = await api.post('/auth/login', credentials);
     return response.data;
   }
 };

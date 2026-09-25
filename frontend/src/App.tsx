@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import MetricsCards from './components/MetricsCards';
 import FilterBar from './components/FilterBar';
@@ -6,10 +6,12 @@ import ExpenseTable from './components/ExpenseTable';
 import { AiAssistant } from './components/AiAssistant';
 import { PlanningDashboard } from './components/PlanningDashboard';
 import { PlanningModule } from './modules/floorplan/PlanningModule';
+import { Login } from './components/Login';
 import { useExpenses } from './hooks/useExpenses';
 import { useMetrics, useEtapas } from './hooks/useMetrics';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState<'REALIZED' | 'PLANNING' | 'FLOORPLAN'>('REALIZED');
   
   const [filters, setFilters] = useState({
@@ -26,6 +28,15 @@ function App() {
   const { data, isLoading, refetch } = useExpenses(filters);
   const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa);
   const { data: etapas = ['Laje'] } = useEtapas();
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setIsAuthenticated(false);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
 
   const handleEdit = (id: string) => {
     // If they click edit, we could handle via AiAssistant later
@@ -60,6 +71,10 @@ function App() {
       setFilters(prev => ({ ...prev, etapa: value }));
     }
   };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
