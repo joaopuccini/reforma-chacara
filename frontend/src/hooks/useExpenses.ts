@@ -11,9 +11,10 @@ interface QueryParams {
   etapa?: string;
 }
 
-export function useExpenses(params: QueryParams) {
+export function useExpenses(params: QueryParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['expenses', params],
+    enabled: options?.enabled !== false,
     queryFn: async () => {
       const { data } = await api.get('/expenses', { params });
       return data as { data: Expense[]; meta: { total: number; page: number; totalPages: number } };

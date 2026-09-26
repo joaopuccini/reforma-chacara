@@ -25,9 +25,9 @@ function App() {
     etapa: ''
   });
 
-  const { data, isLoading, refetch } = useExpenses(filters);
-  const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa);
-  const { data: etapas = ['Laje'] } = useEtapas();
+  const { data, isLoading, refetch } = useExpenses(filters, { enabled: isAuthenticated });
+  const { data: metrics, isLoading: isLoadingMetrics } = useMetrics(filters.etapa, { enabled: isAuthenticated });
+  const { data: etapas = ['Laje'] } = useEtapas({ enabled: isAuthenticated });
 
   useEffect(() => {
     const handleUnauthorized = () => {
