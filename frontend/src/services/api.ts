@@ -76,6 +76,18 @@ export const planningApi = {
   getFloorPlanVersions: async () => {
     const response = await api.get('/planning/floorplan/versions');
     return response.data;
+  },
+  downloadFloorPlanVersion: async (fileName: string) => {
+    const response = await api.get(`/planning/floorplan/download/${fileName}`);
+    return response.data;
+  },
+  chatFloorplan: async (data: any) => {
+    const response = await api.post('/planning/floorplan/chat', data);
+    return response.data;
+  },
+  estimateBudgetFromDiff: async (diff: any) => {
+    const response = await api.post('/planning/floorplan/budget-diff', { diff });
+    return response.data;
   }
 };
 

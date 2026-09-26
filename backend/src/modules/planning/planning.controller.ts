@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 import { CreateWorkStageDto, CreateExecutionScheduleDto, CreatePlanningCostDto } from './dto/create-planning.dto';
 
@@ -44,5 +44,20 @@ export class PlanningController {
   @Get('floorplan/versions')
   getFloorplanVersions() {
     return this.planningService.getFloorplanVersions();
+  }
+
+  @Get('floorplan/download/:fileName')
+  downloadFloorplan(@Param('fileName') fileName: string) {
+    return this.planningService.downloadFloorplan(fileName);
+  }
+
+  @Post('floorplan/chat')
+  chatFloorplan(@Body() data: any) {
+    return this.planningService.chatFloorplan(data);
+  }
+
+  @Post('floorplan/budget-diff')
+  estimateBudgetFromDiff(@Body() data: any) {
+    return this.planningService.estimateBudgetFromDiff(data);
   }
 }

@@ -27,7 +27,7 @@ export function PropertyPanel() {
   if (!wall && !opening && !room) return null;
 
   return (
-    <div className="absolute top-4 right-4 z-20 w-80 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex flex-col overflow-hidden text-sm">
+    <div className="fixed bottom-0 inset-x-0 w-full md:absolute md:top-4 md:right-4 z-30 md:w-80 bg-black/80 backdrop-blur-md border-t md:border border-white/10 rounded-t-2xl md:rounded-xl shadow-2xl flex flex-col text-sm max-h-[50vh] md:max-h-none overflow-y-auto">
       {/* Header */}
       <div className="flex justify-between items-center bg-white/5 px-4 py-3 border-b border-white/10">
         <h3 className="font-semibold text-white/90">

@@ -22,15 +22,35 @@ function Wall3D({ wall, pA, pB }: Wall3DProps) {
   const centerY = (pA.y + pB.y) / 2;
   const height = wall.altura_cm;
   
-  let color = '#ffffff';
+  let color = wall.cor || '#ffffff';
   let opacity = 1;
+  let roughness = 0.8;
+  let metalness = 0.1;
+
+  if (wall.material === 'madeira') color = wall.cor || '#8b5a2b';
+  else if (wall.material === 'vidro') {
+    color = wall.cor || '#add8e6';
+    opacity = 0.4;
+    roughness = 0.1;
+    metalness = 0.8;
+  }
+  else if (wall.material === 'pedra') {
+    color = wall.cor || '#808080';
+    roughness = 0.9;
+  }
+  else if (wall.material === 'concreto') {
+    color = wall.cor || '#a9a9a9';
+  }
+  else if (wall.material === 'tijolo_aparente') {
+    color = wall.cor || '#b22222';
+  }
 
   if (wall.status === 'planejada') {
-    color = '#add8e6';
-    opacity = 0.6;
+    color = '#3b82f6';
+    opacity = Math.min(opacity, 0.6);
   } else if (wall.status === 'removida') {
-    color = '#ff9999';
-    opacity = 0.3;
+    color = '#ef4444';
+    opacity = Math.min(opacity, 0.3);
   }
   
   const geometry = useMemo(() => {
@@ -73,7 +93,8 @@ function Wall3D({ wall, pA, pB }: Wall3DProps) {
         color={color} 
         transparent={opacity < 1} 
         opacity={opacity} 
-        roughness={0.8}
+        roughness={roughness}
+        metalness={metalness}
         depthWrite={opacity === 1}
       />
     </mesh>
@@ -82,6 +103,28 @@ function Wall3D({ wall, pA, pB }: Wall3DProps) {
 
 export function Viewer3D() {
   const plan = useFloorPlanStore((state) => state.plan);
+
+  const { minX, minY, maxX, maxY } = useMemo(() => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    Object.values(plan.points).forEach(p => {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    });
+    // Add margin
+    return { 
+      minX: minX === Infinity ? 0 : minX - 100, 
+      minY: minY === Infinity ? 0 : minY - 100, 
+      maxX: maxX === -Infinity ? 1000 : maxX + 100, 
+      maxY: maxY === -Infinity ? 1000 : maxY + 100 
+    };
+  }, [plan.points]);
+
+  const floorWidth = maxX - minX;
+  const floorHeight = maxY - minY;
+  const floorCenterX = (minX + maxX) / 2;
+  const floorCenterY = (minY + maxY) / 2;
 
   return (
     <div className="w-full h-full bg-background/50 relative">
@@ -96,6 +139,12 @@ export function Viewer3D() {
         
         {/* Rotação converte o plano XY (2D) para XZ (3D, chão) */}
         <group rotation={[-Math.PI / 2, 0, 0]}>
+          {/* Piso base */}
+          <mesh position={[floorCenterX, floorCenterY, -0.1]}>
+            <planeGeometry args={[floorWidth, floorHeight]} />
+            <meshStandardMaterial color="#e5e7eb" roughness={0.9} />
+          </mesh>
+
           {Object.values(plan.walls).map(wall => (
             <Wall3D 
               key={wall.id} 

@@ -2,22 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { Editor2D } from './components/Editor2D';
 import { Viewer3D } from './components/Viewer3D';
 import { PropertyPanel } from './components/PropertyPanel';
+import { FloorplanChat } from './components/FloorplanChat';
 import { useFloorPlanStore } from './useFloorPlanStore';
 import { generatePlanDiff } from './services/diffService';
 import { planningApi } from '../../services/api';
+import { hasDraft, loadDraft, clearDraft } from './utils/draftPersistence';
 
 export function PlanningModule() {
   const { addPoint } = useFloorPlanStore();
   const [versions, setVersions] = useState<string[]>(['planta.json']);
   const [selectedVersion, setSelectedVersion] = useState<string>('planta.json');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
 
   useEffect(() => {
     planningApi.getFloorPlanVersions().then(v => {
-      if (v && v.length > 0) {
-        setVersions(v);
-        setSelectedVersion(v[v.length - 1]);
-      }
+      const allVersions = ['planta.json', ...(v || [])];
+      setVersions(allVersions);
+      setSelectedVersion(allVersions[allVersions.length - 1]);
     }).catch(console.error);
+
+    // Check for draft
+    hasDraft().then(exists => {
+      if (exists) {
+        if (window.confirm("Você tem alterações não salvas. Continuar de onde parou?")) {
+          loadDraft().then(draft => {
+            if (draft) {
+              useFloorPlanStore.getState().loadPlan(draft.plan);
+            }
+          });
+        } else {
+          clearDraft();
+        }
+      }
+    });
   }, []);
 
   const handleCreateSquare = () => {
@@ -28,22 +45,42 @@ export function PlanningModule() {
 
   const handleLoadChacara = async () => {
     try {
-      const response = await fetch(`/${selectedVersion}`);
-      if (!response.ok) throw new Error(`Falha ao carregar ${selectedVersion}`);
-      const data = await response.json();
-      useFloorPlanStore.getState().importRoomPlan(data);
+      // If it's the default offline one, fetch from public dir
+      if (selectedVersion === 'planta.json') {
+        const response = await fetch('/planta.json');
+        if (!response.ok) throw new Error(`Falha ao carregar planta.json local`);
+        const data = await response.json();
+        useFloorPlanStore.getState().importRoomPlan(data);
+        return;
+      }
+      
+      const data = await planningApi.downloadFloorPlanVersion(selectedVersion);
+      // The backend saves { metadata, plan }, so if metadata exists, load the inner plan
+      if (data && data.plan) {
+        useFloorPlanStore.getState().importRoomPlan(data.plan);
+      } else {
+        useFloorPlanStore.getState().importRoomPlan(data);
+      }
     } catch (err) {
       console.error(err);
       alert(`Erro ao carregar o arquivo ${selectedVersion}.`);
     }
   };
 
-  const handleExportDiff = () => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportDiff = async () => {
     const plan = useFloorPlanStore.getState().plan;
     const diff = generatePlanDiff(plan);
-    console.log('--- DIFF PARA A IA ---');
-    console.log(JSON.stringify(diff, null, 2));
-    alert('Diff gerado com sucesso! (Ver console)');
+    setIsExporting(true);
+    try {
+      const res = await planningApi.estimateBudgetFromDiff(diff);
+      alert(res.text); // Idealmente isso abriria um modal ou a conversa do Telegram
+    } catch (e) {
+      alert("Erro ao exportar diff.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSaveToBackend = async () => {
@@ -104,27 +141,48 @@ export function PlanningModule() {
           </button>
           <button 
             onClick={handleExportDiff}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+            disabled={isExporting}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
           >
-            Exportar Diff (IA)
+            {isExporting ? 'Calculando...' : 'Exportar Diff (IA)'}
           </button>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden relative flex-col md:flex-row">
         <PropertyPanel />
+        <div className="absolute bottom-4 right-4 z-30 w-80 h-96 hidden md:block">
+          <FloorplanChat />
+        </div>
+        
+        {/* Mobile View Toggle */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 md:hidden flex bg-background/90 backdrop-blur-sm border border-border rounded-full shadow-lg overflow-hidden p-1">
+          <button 
+            onClick={() => setViewMode('2d')} 
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${viewMode === '2d' ? 'bg-emerald-500 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+          >
+            Planta 2D
+          </button>
+          <button 
+            onClick={() => setViewMode('3d')} 
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${viewMode === '3d' ? 'bg-emerald-500 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+          >
+            Visualizador 3D
+          </button>
+        </div>
+
         {/* Painel Esquerdo: 2D Editor */}
-        <div className="flex-1 flex flex-col border-r border-border relative">
-          <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-sm border border-border shadow-sm rounded-md px-3 py-1 text-sm font-medium text-foreground">
+        <div className={`flex-1 flex-col border-border relative ${viewMode === '2d' ? 'flex' : 'hidden'} md:flex md:border-r`}>
+          <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-sm border border-border shadow-sm rounded-md px-3 py-1 text-sm font-medium text-foreground hidden md:block">
             Editor 2D
           </div>
           <Editor2D />
         </div>
 
         {/* Painel Direito: 3D Viewer */}
-        <div className="flex-1 flex flex-col relative bg-muted/10">
-          <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-sm border border-border shadow-sm rounded-md px-3 py-1 text-sm font-medium text-foreground">
+        <div className={`flex-1 flex-col relative bg-muted/10 ${viewMode === '3d' ? 'flex' : 'hidden'} md:flex`}>
+          <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-sm border border-border shadow-sm rounded-md px-3 py-1 text-sm font-medium text-foreground hidden md:block">
             Visualizador 3D
           </div>
           <Viewer3D />

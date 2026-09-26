@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import { v4 as uuidv4 } from 'uuid';
 import { FloorPlan, Point2D, Wall, Opening, EntityStatus, Room } from './types';
+import { detectRooms } from './utils/geometry';
+import { generateLabels } from './utils/labelGenerator';
 
 export interface SelectedElement {
   type: 'wall' | 'opening' | 'room';
@@ -15,6 +17,7 @@ export interface FloorPlanState {
   
   // Actions
   addPoint: (x: number, y: number) => string;
+  updatePoint: (pointId: string, x: number, y: number) => void;
   addWall: (pointA: string, pointB: string, espessura?: number, altura?: number, status?: EntityStatus) => string;
   updateWallStatus: (wallId: string, status: EntityStatus) => void;
   updateWall: (wallId: string, data: Partial<Wall>) => void;
@@ -26,6 +29,9 @@ export interface FloorPlanState {
   addRoom: (x: number, y: number, name?: string, area_m2?: number) => string;
   updateRoom: (roomId: string, data: Partial<Room>) => void;
   removeRoom: (roomId: string) => void;
+
+  renameWall: (wallId: string, label: string) => void;
+  autoDetectAndLabelRooms: () => void;
 
   setSelectedElement: (element: SelectedElement | null) => void;
   
@@ -59,6 +65,22 @@ export const useFloorPlanStore = create<FloorPlanState>()(
     return id;
   },
 
+  updatePoint: (pointId: string, x: number, y: number) => {
+    set((state) => {
+      const point = state.plan.points[pointId];
+      if (!point) return state;
+      return {
+        plan: {
+          ...state.plan,
+          points: {
+            ...state.plan.points,
+            [pointId]: { ...point, x, y }
+          }
+        }
+      };
+    });
+  },
+
   addWall: (pointA: string, pointB: string, espessura: number = 15, altura: number = 280, status: EntityStatus = 'planejada') => {
     const id = uuidv4();
     const newWall: Wall = {
@@ -70,7 +92,11 @@ export const useFloorPlanStore = create<FloorPlanState>()(
       aberturas: [],
       status,
       room_a: null,
-      room_b: null
+      room_b: null,
+      label: null,
+      material: 'alvenaria',
+      cor: null,
+      textura: null
     };
 
     set((state) => ({
@@ -114,6 +140,22 @@ export const useFloorPlanStore = create<FloorPlanState>()(
     });
   },
 
+  renameWall: (wallId: string, label: string) => {
+    set((state) => {
+      const wall = state.plan.walls[wallId];
+      if (!wall) return state;
+      return {
+        plan: {
+          ...state.plan,
+          walls: {
+            ...state.plan.walls,
+            [wallId]: { ...wall, label }
+          }
+        }
+      };
+    });
+  },
+
   removeWall: (wallId: string) => {
     set((state) => {
       const wall = state.plan.walls[wallId];
@@ -144,7 +186,12 @@ export const useFloorPlanStore = create<FloorPlanState>()(
       const wall = state.plan.walls[wallId];
       if (!wall) return state;
       
-      const newOpening: Opening = { ...openingData, id };
+      const newOpening: Opening = { 
+        ...openingData, 
+        id,
+        material_porta: null,
+        estilo: null
+      };
       
       return {
         plan: {
@@ -214,7 +261,8 @@ export const useFloorPlanStore = create<FloorPlanState>()(
             area_m2,
             paredes: [],
             status: 'planejada',
-            labelPosition: { x, y }
+            labelPosition: { x, y },
+            autoDetected: false
           }
         }
       }
@@ -257,6 +305,30 @@ export const useFloorPlanStore = create<FloorPlanState>()(
     import('./services/roomPlanService').then(({ parseRoomPlan }) => {
       const newPlan = parseRoomPlan(jsonData);
       set({ plan: newPlan });
+      useFloorPlanStore.getState().autoDetectAndLabelRooms();
+    });
+  },
+
+  autoDetectAndLabelRooms: () => {
+    set((state) => {
+      const roomsArray = detectRooms(state.plan);
+      const rooms: Record<string, Room> = {};
+      
+      // Keep user-defined rooms that weren't auto-detected, maybe?
+      // For now, let's just merge or replace auto-detected ones.
+      // To keep it simple: replace all rooms that are autoDetected, keep user ones.
+      const existingUserRooms = Object.values(state.plan.rooms).filter(r => !r.autoDetected);
+      for (const r of existingUserRooms) {
+        rooms[r.id] = r;
+      }
+      for (const r of roomsArray) {
+        rooms[r.id] = r;
+      }
+
+      let newPlan = { ...state.plan, rooms };
+      newPlan = generateLabels(newPlan);
+
+      return { plan: newPlan };
     });
   },
 
@@ -288,10 +360,15 @@ export const useFloorPlanStore = create<FloorPlanState>()(
         aberturas: [],
         altura_cm: 280,
         room_a: null,
-        room_b: null
+        room_b: null,
+        label: null,
+        material: 'alvenaria',
+        cor: null,
+        textura: null
       };
     }
     set({ plan: { points, walls, rooms: {} } });
+    useFloorPlanStore.getState().autoDetectAndLabelRooms();
   },
 
   loadChacaraPlan: () => {
@@ -331,10 +408,27 @@ export const useFloorPlanStore = create<FloorPlanState>()(
         aberturas: [],
         altura_cm: 280,
         room_a: null,
-        room_b: null
+        room_b: null,
+        label: null,
+        material: 'alvenaria',
+        cor: null,
+        textura: null
       };
     }
 
     set({ plan: { points, walls, rooms: {} } });
+    useFloorPlanStore.getState().autoDetectAndLabelRooms();
   }
 })));
+
+let timeoutId: any = null;
+useFloorPlanStore.subscribe((state, prevState) => {
+  if (state.plan !== prevState.plan) {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      import('./utils/draftPersistence').then(({ saveDraft }) => {
+        saveDraft(state.plan, null);
+      });
+    }, 2000);
+  }
+});

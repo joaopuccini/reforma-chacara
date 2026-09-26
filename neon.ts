@@ -1,3 +1,9 @@
 import { defineConfig } from '@neon/config/v1';
 
-export default defineConfig({});
+export default defineConfig({
+  preview: {
+    buckets: {
+      "plantas-versoes": { access: "public_read" }
+    }
+  }
+});

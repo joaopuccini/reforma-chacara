@@ -1,4 +1,4 @@
-import { FloorPlan, Point2D } from '../types';
+import { FloorPlan, Point2D, Room } from '../types';
 
 /**
  * Calculates the polygon area using the Shoelace formula.
@@ -222,4 +222,155 @@ export function calculateRoomArea(x: number, y: number, plan: FloorPlan): number
   }
 
   return 0;
+}
+
+export function detectRooms(plan: FloorPlan): Room[] {
+  const rawEdges = Object.values(plan.walls).filter(w => w.status !== 'removida');
+  if (rawEdges.length === 0) return [];
+
+  const TOLERANCE = 15;
+  let nextNodeId = 10000;
+  
+  const nodes: Record<string, Point2D> = {};
+  for (const p of Object.values(plan.points)) {
+    nodes[p.id] = { ...p };
+  }
+
+  const getNewId = () => `node_${nextNodeId++}`;
+
+  const segments = rawEdges.map(w => {
+    return {
+      wallId: w.id,
+      pA: plan.points[w.pointA],
+      pB: plan.points[w.pointB],
+      internalNodes: [] as Point2D[]
+    };
+  }).filter(s => s.pA && s.pB);
+
+  // Segment Intersections
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const s1 = segments[i];
+      const s2 = segments[j];
+      const int = getIntersection(s1.pA, s1.pB, s2.pA, s2.pB);
+      if (int) {
+        const id = getNewId();
+        const pt = { id, x: int.x, y: int.y };
+        nodes[id] = pt;
+        s1.internalNodes.push(pt);
+        s2.internalNodes.push(pt);
+      }
+    }
+  }
+
+  // T-junctions
+  for (const s of segments) {
+    for (const p of Object.values(nodes)) {
+      if (p.id === s.pA.id || p.id === s.pB.id) continue;
+      const res = pointToSegment(p.x, p.y, s.pA.x, s.pA.y, s.pB.x, s.pB.y);
+      if (res.dist < TOLERANCE) {
+        s.internalNodes.push(p);
+      }
+    }
+  }
+
+  const adj: Record<string, { to: string, angle: number, id: string, wallId: string }[]> = {};
+
+  const addHalfEdge = (n1: Point2D, n2: Point2D, wallId: string) => {
+    if (Math.hypot(n1.x - n2.x, n1.y - n2.y) < 1) return;
+    if (!adj[n1.id]) adj[n1.id] = [];
+    if (!adj[n2.id]) adj[n2.id] = [];
+
+    const angle12 = Math.atan2(n2.y - n1.y, n2.x - n1.x);
+    const angle21 = Math.atan2(n1.y - n2.y, n1.x - n2.x);
+
+    if (!adj[n1.id].find(e => e.to === n2.id)) {
+      adj[n1.id].push({ to: n2.id, angle: angle12, id: `${n1.id}_${n2.id}`, wallId });
+      adj[n2.id].push({ to: n1.id, angle: angle21, id: `${n2.id}_${n1.id}`, wallId });
+    }
+  };
+
+  for (const s of segments) {
+    const pts = [s.pA, ...s.internalNodes, s.pB];
+    pts.sort((a, b) => Math.hypot(a.x - s.pA.x, a.y - s.pA.y) - Math.hypot(b.x - s.pA.x, b.y - s.pA.y));
+    for (let i = 0; i < pts.length - 1; i++) {
+      addHalfEdge(pts[i], pts[i+1], s.wallId);
+    }
+  }
+
+  for (const nodeId in adj) {
+    adj[nodeId].sort((a, b) => a.angle - b.angle);
+  }
+
+  const visitedHalfEdges = new Set<string>();
+  const faces: { points: Point2D[], wallIds: Set<string> }[] = [];
+
+  for (const nodeId in adj) {
+    for (let i = 0; i < adj[nodeId].length; i++) {
+      const startEdge = adj[nodeId][i];
+      if (visitedHalfEdges.has(startEdge.id)) continue;
+
+      const face: Point2D[] = [];
+      const faceWallIds = new Set<string>();
+      let currentEdge = startEdge;
+      let currentNode = nodeId;
+      let safetyCounter = 0;
+      
+      while (!visitedHalfEdges.has(currentEdge.id) && safetyCounter < 1000) {
+        visitedHalfEdges.add(currentEdge.id);
+        face.push(nodes[currentNode]);
+        faceWallIds.add(currentEdge.wallId);
+
+        const nextNode = currentEdge.to;
+        const reverseEdges = adj[nextNode];
+        const reverseIndex = reverseEdges.findIndex(e => e.to === currentNode);
+        
+        if (reverseIndex === -1) break;
+
+        const nextEdgeIndex = (reverseIndex + 1) % reverseEdges.length;
+        
+        currentNode = nextNode;
+        currentEdge = reverseEdges[nextEdgeIndex];
+        safetyCounter++;
+      }
+
+      if (face.length >= 3) {
+        faces.push({ points: face, wallIds: faceWallIds });
+      }
+    }
+  }
+
+  // Filter out the external face (usually the one with negative area or largest absolute area)
+  // Internal faces usually have positive area (CCW) if we sort by angle CCW.
+  const rooms: Room[] = [];
+  let roomCount = 1;
+
+  for (const face of faces) {
+    const area = polygonArea(face.points);
+    if (area > 0) { // Positive area = internal face
+      // Calculate centroid
+      let cx = 0, cy = 0;
+      for (const p of face.points) {
+        cx += p.x;
+        cy += p.y;
+      }
+      cx /= face.points.length;
+      cy /= face.points.length;
+
+      const areaM2 = Math.round((area / 10000) * 10) / 10;
+
+      rooms.push({
+        id: `room_auto_${roomCount}`,
+        nome: `Cômodo ${roomCount}`,
+        area_m2: areaM2,
+        paredes: Array.from(face.wallIds),
+        status: 'real',
+        labelPosition: { x: cx, y: cy },
+        autoDetected: true
+      });
+      roomCount++;
+    }
+  }
+
+  return rooms;
 }

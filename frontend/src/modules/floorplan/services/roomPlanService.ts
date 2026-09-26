@@ -83,7 +83,11 @@ export function parseRoomPlan(data: any): FloorPlan {
       status: 'real',
       aberturas: [],
       room_a: null,
-      room_b: null
+      room_b: null,
+      label: null,
+      material: 'alvenaria',
+      cor: null,
+      textura: null
     };
   });
 
@@ -136,6 +140,8 @@ export function parseRoomPlan(data: any): FloorPlan {
           altura_cm: height,
           peitoril_cm: Math.max(0, distChao * 100),
           material: null,
+          material_porta: null,
+          estilo: null,
           cor: null,
           status: 'real'
         };

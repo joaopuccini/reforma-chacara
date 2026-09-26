@@ -50,6 +50,9 @@ export function Editor2D() {
   const [draftStart, setDraftStart] = useState<{ x: number, y: number, id?: string } | null>(null);
   const [draftEnd, setDraftEnd] = useState<{ x: number, y: number, id?: string } | null>(null);
   const [snapPoint, setSnapPoint] = useState<{ x: number, y: number, id?: string } | null>(null);
+  const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
+
+  const updatePoint = useFloorPlanStore(state => state.updatePoint);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -93,6 +96,14 @@ export function Editor2D() {
     }));
   };
 
+  const handlePointPointerDown = (e: React.PointerEvent, pointId: string) => {
+    if (mode === 'pan') {
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setDraggingPointId(pointId);
+    }
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 && e.button !== 1) return; // Only left or middle click
     
@@ -117,7 +128,13 @@ export function Editor2D() {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     const pt = getSvgPoint(e);
-    setSnapPoint(getSnapPoint(pt.x, pt.y));
+    const snapped = getSnapPoint(pt.x, pt.y);
+    setSnapPoint(snapped);
+
+    if (draggingPointId) {
+      updatePoint(draggingPointId, snapped.x, snapped.y);
+      return;
+    }
 
     if (!isDragging) return;
     
@@ -137,11 +154,17 @@ export function Editor2D() {
         y: prev.y - e.movementY * scaleY
       }));
     } else if (mode === 'draw' && draftStart) {
-      setDraftEnd(getSnapPoint(pt.x, pt.y));
+      setDraftEnd(snapped);
     }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (draggingPointId) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      setDraggingPointId(null);
+      return;
+    }
+
     if (mode === 'draw') {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -204,7 +227,7 @@ export function Editor2D() {
     <div className="w-full h-full bg-background flex flex-col relative overflow-hidden">
       
       {/* Toolbar Flutuante */}
-      <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-xl flex flex-col gap-2 shadow-xl">
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 md:translate-x-0 w-[90%] max-w-sm md:w-auto md:top-4 md:bottom-auto md:left-4 z-10 bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-xl flex flex-row justify-around md:flex-col gap-2 shadow-xl">
         <button 
           className={`p-3 rounded-lg transition-colors ${mode === 'pan' ? 'bg-primary/30 text-primary border border-primary/50' : 'hover:bg-white/10 text-white/70'}`}
           onClick={() => setMode('pan')}
@@ -266,6 +289,18 @@ export function Editor2D() {
             
             if (isSelected) stroke = '#eab308'; // amarelo para selecionado
 
+            const dx = pB.x - pA.x;
+            const dy = pB.y - pA.y;
+            const lengthCm = Math.hypot(dx, dy);
+            const lengthM = (lengthCm / 100).toFixed(2);
+            const midX = pA.x + dx / 2;
+            const midY = pA.y + dy / 2;
+
+            let angleText = Math.atan2(dy, dx) * (180 / Math.PI);
+            if (angleText > 90 || angleText < -90) {
+              angleText += 180;
+            }
+
             return (
               <g key={wall.id}>
                 {/* Highlight/Glow for selected wall */}
@@ -297,10 +332,41 @@ export function Editor2D() {
                   />
                   
                   {/* Vértices */}
-                  <circle cx={pA.x} cy={pA.y} r={wall.espessura_cm / 2} fill={stroke} opacity={isRemovida ? 0.3 : 1} />
-                  <circle cx={pB.x} cy={pB.y} r={wall.espessura_cm / 2} fill={stroke} opacity={isRemovida ? 0.3 : 1} />
+                  <circle 
+                    cx={pA.x} cy={pA.y} r={wall.espessura_cm / 2 + 5} 
+                    fill={stroke} opacity={isRemovida ? 0.3 : 1}
+                    onPointerDown={(e) => handlePointPointerDown(e, wall.pointA)}
+                    style={{ cursor: mode === 'pan' ? 'move' : 'inherit' }}
+                    className="hover:scale-125 transition-transform"
+                  />
+                  <circle 
+                    cx={pB.x} cy={pB.y} r={wall.espessura_cm / 2 + 5} 
+                    fill={stroke} opacity={isRemovida ? 0.3 : 1}
+                    onPointerDown={(e) => handlePointPointerDown(e, wall.pointB)}
+                    style={{ cursor: mode === 'pan' ? 'move' : 'inherit' }}
+                    className="hover:scale-125 transition-transform"
+                  />
                 </g>
                 
+                {/* Etiqueta de Medida (Comprimento) */}
+                {lengthCm > 50 && (
+                  <g 
+                    transform={`translate(${midX}, ${midY}) rotate(${angleText}) scale(1, -1)`}
+                    className="pointer-events-none select-none"
+                  >
+                    <rect x={-30} y={-10} width={60} height={20} fill="#111111" opacity={0.8} rx={4} />
+                    <text
+                      x={0} y={4}
+                      textAnchor="middle"
+                      fill={isRemovida ? '#ef4444' : '#9ca3af'}
+                      fontSize="14"
+                      fontWeight="500"
+                    >
+                      {lengthM}m
+                    </text>
+                  </g>
+                )}
+
                 {/* Aberturas (Portas/Janelas) */}
                 {wall.aberturas?.map(op => {
                   const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
